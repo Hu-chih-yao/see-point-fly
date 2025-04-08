@@ -1,214 +1,146 @@
-# Tello Drone Control System
+# Tello Drone Spatial Navigation System
 
-A comprehensive system for controlling Tello drones with advanced computer vision capabilities, integrating Vision-Language Models (VLM) for automated control.
+This is the Tello physical drone version of the Drone Spatial Navigation System, allowing you to control a DJI Tello drone using high-level spatial commands and AI-powered decision making.
 
-## Project Structure
+## Overview
 
-```
-VLM_Tello_integration/
-├── camera_utils/         # Camera calibration and frame processing
-│   └── camera_calibration.py  # Camera calibration tool
-├── control_system/       # Drone control and flight management
-│   ├── drone_controller.py    # Basic drone connectivity
-│   └── keyboard_controller.py # Manual keyboard controls
-├── safety/               # Safety monitoring and failsafe systems
-│   └── emergency_handler.py   # Emergency monitoring and actions
-├── detection/            # Object detection and tracking
-├── config/               # Configuration files including calibration data
-├── Documentations/       # Project documentation
-│   ├── TelloDroneControlSystem_Architecture.md
-│   ├── TelloDroneControlSystem_IncrementalSteps.md
-│   ├── Phase1.1_DroneConnectivity.md
-│   ├── Phase1.2_EmergencyControls.md
-│   └── Phase2_VideoProcessingAndCalibration.md
-├── Labs/                 # Laboratory files and testing code
-├── main.py               # Main application entry point
-└── README.md             # This file
-```
+This implementation adapts the simulator-based drone navigation system to work with physical Tello drones. It maintains the same structure and command processing pipeline while adapting the input (camera) and output (control) interfaces to work with the Tello API.
 
-## Current Implementation
 
-### Phase 1.1: Basic Connectivity
-- Establishing connection to the Tello drone
-- Retrieving basic telemetry (battery, temperature, SDK version)
-- Maintaining connection with keepalive signals
-- Safe disconnection and error handling
+⚠️ **PROPRIETARY SOFTWARE** ⚠️
 
-### Phase 1.2: Emergency Controls
-- Manual keyboard control for all flight axes (roll, pitch, yaw, throttle)
-- Emergency stop functionality (via 'Q' key)
-- Automated safety monitoring for critical conditions
-- Variable speed modes for precise control
+This software is proprietary and closed-source. All rights reserved.
+No part of this software may be used, copied, modified, or distributed without express written permission.
+See LICENSE file for details.
 
-### Phase 2: Video Processing and Calibration (NEW)
-- Robust video stream acquisition with error handling
-- Frame preprocessing with color space conversion
-- Stream stabilization with automatic warm-up period
-- Interactive camera calibration tool with visual feedback
-- Threshold adjustment for optimal pattern detection
-- Calibration quality assessment and reporting
-- Lens distortion correction with real-time preview
-- Saving and loading of calibration parameters
+## Features
 
-## Keyboard Controls
+- Direct Tello drone control via djitellopy
+- Real-time camera feed processing from Tello
+- AI-powered decision making using Google Gemini
+- Keyboard manual override system
+- Multi-threaded action execution
+- Command queue system
+- Emergency stop functionality
 
-```
-=== Keyboard Controls ===
-Takeoff:           't'
-Land:              'l'
-Emergency Stop:    'q'
-Stop Movement:     'e'
-Reset Velocities:  'r'
-Forward/Backward:  'w'/'s'
-Left/Right:        'a'/'d'
-Up/Down:           'up'/'down' arrow keys
-Yaw Left/Right:    'left'/'right' arrow keys
-Get Height:        'h'
-Get Battery:       'b'
-Exit Program:      'ctrl+c'
-```
+## Prerequisites
 
-The keyboard controller uses direct key mapping with sophisticated error handling and command rate limiting for smooth control response. All movement controls operate at configurable speeds, and safety mechanisms prevent command flooding.
+- Python 3.8+
+- Google Gemini API key
+- DJI Tello drone
+- Good Wi-Fi connection to the Tello
+## Prerequisites
 
-## Requirements
-
-- Python 3.6 or higher
-- djitellopy
-- opencv-python
-- numpy
-- pynput (for keyboard control)
-- logging
 
 ## Installation
 
-1. Ensure you have Python 3.6+ installed
-2. Install required packages:
-
+1. Install dependencies:
 ```bash
-pip install djitellopy opencv-python numpy pynput
+pip install -r requirements.txt
 ```
+
+2. Configure your environment:
+- Create a `.env` file with your Gemini API key:
+```
+GEMINI_API_KEY=your_api_key_here
+```
+
+## Configuration
+
+The system can be configured using `config.yaml`:
+
+```yaml
+mode: "single"  # or "waypoint"
+command_loop_delay: 0  # seconds between actions
+```
+
+- **Mode**:
+  - `single`: Generates one action at a time
+  - `waypoint`: Generates a sequence of waypoints for more complex navigation
 
 ## Usage
 
-### Main Application
+### Basic Usage
 
-1. Turn on your Tello drone
-2. Connect your computer to the Tello's Wi-Fi network
-3. Run the main script:
+Make sure your computer is connected to the Tello's Wi-Fi network, then run:
 
 ```bash
-python main.py
+python main_tello.py
+```
+
+### Debug Mode
+
+For debugging with visual feedback:
+
+```bash
+python main_tello.py --debug
 ```
 
 This will:
-- Connect to the drone
-- Display basic information
-- Start the emergency monitoring system
-- Enable keyboard control
-- Allow safe operation with emergency override capability
+- Show the live Tello camera feed
+- Print detailed logging information
+- Display processing steps
 
-### Camera Calibration
+### Test Mode
 
-1. Print a 6x9 chessboard pattern (7x10 squares)
-2. Turn on your Tello drone
-3. Connect your computer to the Tello's Wi-Fi network
-4. Run the calibration tool:
+Run with a static test image:
 
 ```bash
-python camera_utils/camera_calibration.py
+python main_tello.py --test
 ```
 
-5. Follow the on-screen instructions:
-   - Press 'd' to toggle the debug view for threshold adjustment
-   - Adjust the threshold slider until the chessboard is clearly detected
-   - Press 'c' to capture when a chessboard is detected
-   - Capture at least 15 samples from different angles
-   - Press 'q' to finish and calculate calibration
+## Differences from Simulator Version
 
-The calibration files will be saved to `config/tello_camera_calibration.xml` and can be used by computer vision applications.
+1. **Input Source**:
+   - Simulator: Screen capture via mss
+   - Tello: Direct camera feed via djitellopy
 
-### Using Calibration Data in Applications
+2. **Control Mechanism**:
+   - Simulator: Keyboard simulation via pynput
+   - Tello: Direct RC commands via djitellopy API
 
-```python
-import cv2
+3. **Startup Sequence**:
+   - Simulator: No physical startup needed
+   - Tello: Connect → Stream On → Takeoff sequence
 
-# Load calibration parameters
-calibration_file = 'config/tello_camera_calibration.xml'
-fs = cv2.FileStorage(calibration_file, cv2.FILE_STORAGE_READ)
-camera_matrix = fs.getNode('camera_matrix').mat()
-dist_coeffs = fs.getNode('dist_coeffs').mat()
-fs.release()
+4. **Safety Features**:
+   - Additional safety checks for battery and connection
+   - Automatic landing on error or connection loss
 
-# Undistort a frame
-def undistort_frame(frame):
-    h, w = frame.shape[:2]
-    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
-        camera_matrix, dist_coeffs, (w, h), 1, (w, h)
-    )
-    return cv2.undistort(frame, camera_matrix, dist_coeffs, None, newcameramtx)
-```
+5. **Performance Considerations**:
+   - Tello has lower resolution camera (720p)
+   - Commands may need duration/speed calibration
+   - Network latency affects control responsiveness
 
-## Safety Features
+## Manual Override Controls
 
-- Emergency stop button ('Q')
-- Low battery auto-landing
-- Critical battery emergency stop
-- Maximum height limitation
-- Fallback emergency mechanisms
-- Response time tracking for diagnostics
+You can take manual control at any time by pressing these keys:
+
+- `↑/↓` (Arrow keys): Forward/Backward
+- `A/D`: Turn left/right
+- `←/→` (Arrow keys): Roll left/right
+- `W/S`: Up/Down
+- `T`: Takeoff
+- `L`: Land
+- `E`: Emergency stop (stops all movement)
+
+AI control will automatically resume when you release all keys.
 
 ## Troubleshooting
 
-### Common Issues
+### Connection Issues
 
-1. **Connection Problems**
-   - Make sure your computer is connected to the Tello's Wi-Fi network
-   - Ensure the drone is powered on and has sufficient battery
-   - Try restarting the drone if connection issues persist
+- Ensure your computer is connected to the Tello's Wi-Fi network
+- Tello battery should be adequately charged (>50% recommended)
+- Keep Tello within good Wi-Fi range (~10 meters)
 
-2. **Keyboard Control Issues**
-   - Verify terminal/console has focus when issuing keyboard commands
-   - Check that no conflicting applications are capturing keyboard input
-   - For some environments, running as administrator might be needed for keyboard capture
+### Camera Feed Issues
 
-3. **Emergency Stop Behavior**
-   - Be aware that emergency stop will immediately cut all motors
-   - Ensure sufficient clearance below the drone when testing
-   - Have a safe landing area available at all times
+- If camera feed fails, the system will return a blank image
+- Try restarting the Tello and reconnecting
 
-4. **Camera Calibration Issues**
-   - If the chessboard isn't detected, try adjusting the threshold slider
-   - Use the debug view ('d' key) to see the binary threshold image
-   - Ensure good lighting and a clear view of the chessboard
-   - Verify your chessboard matches the expected dimensions (6x9 inner corners)
+### Control Issues
 
-5. **Video Stream Problems**
-   - If video frames are corrupted, try reconnecting to the drone
-   - Maintain a strong Wi-Fi connection for stable video streaming
-   - Reduce sources of Wi-Fi interference for better performance
-   - Wait for the warm-up period to complete for best video quality
-
-## Development Plan
-
-See the full development roadmap in the `Documentations` folder:
-- [Architecture Overview](Documentations/TelloDroneControlSystem_Architecture.md)
-- [Incremental Development Steps](Documentations/TelloDroneControlSystem_IncrementalSteps.md)
-- [Phase 1.1: Drone Connectivity](Documentations/Phase1.1_DroneConnectivity.md)
-- [Phase 1.2: Emergency Controls](Documentations/Phase1.2_EmergencyControls.md)
-- [Phase 2: Video Processing and Calibration](Documentations/Phase2_VideoProcessingAndCalibration.md)
-
-## Safety Notes
-
-- Always operate the drone in a safe and open environment
-- Maintain visual contact with the drone at all times
-- Follow local regulations regarding drone operations
-- The application includes safe shutdown mechanisms in case of unexpected errors
-- Practice emergency landings in a safe environment before actual flights
-
-## License
-
-This project is intended for educational and research purposes only.
-
-## Contributing
-
-This is a research project in development. Contributions will be accepted in later phases. 
+- If the Tello doesn't respond to commands, check battery level
+- Ensure there's no interference from other nearby Wi-Fi networks
+- Calibrate the Tello using the official Tello app if movement seems inconsistent 

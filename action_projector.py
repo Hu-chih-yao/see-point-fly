@@ -18,8 +18,8 @@ class ActionProjector:
     """
     
     def __init__(self, 
-                 image_width=3420,
-                 image_height=2214,
+                 image_width=960,
+                 image_height=720,
                  camera_matrix=None,
                  dist_coeffs=None):
         """

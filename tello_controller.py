@@ -32,7 +32,7 @@ class TelloController:
         self.manual_key_pressed = None
         
         # Default speed settings
-        self.default_speed = 40  # Default speed value
+        self.default_speed = 70  # Default speed value
         
         # Start control thread
         self.control_thread = threading.Thread(target=self._tello_control_loop)
@@ -178,13 +178,32 @@ class TelloController:
         if action in self.action_map:
             lr, fb, ud, yaw = self.action_map[action]
             try:
-                print(f"Executing {action} for {duration_ms}ms")
+                print(f"▶ {action} ({duration_ms}ms)")
+                
+                # Record start time
+                start_time = time.time()
+                
                 # Send RC command to Tello
                 self.tello.send_rc_control(lr, fb, ud, yaw)
+                
                 # Hold for duration
                 time.sleep(duration_ms / 1000.0)
+                
+                # Record time before stopping
+                before_stop_time = time.time()
+                
                 # Stop movement after duration
                 self.tello.send_rc_control(0, 0, 0, 0)
+                
+                # Record end time
+                end_time = time.time()
+                
+                # Calculate and Print actual durations
+                actual_duration_ms = (before_stop_time - start_time) * 1000
+                total_command_time_ms = (end_time - start_time) * 1000
+                difference_ms = actual_duration_ms - duration_ms
+                print(f"✓ Done: {actual_duration_ms:.0f}ms (Δ{difference_ms:+.1f}ms)")
+                
                 
                 # Update drone state (using original action space)
                 new_state = self.action_space.update_state(action, duration_ms)
