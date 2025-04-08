@@ -1,0 +1,62 @@
+[
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2223,
+      1217
+    ],
+    "point_3d": [
+      0.39239939846495236,
+      0.950316169828365,
+      -0.12997270048522963
+    ],
+    "processing_time": 2.3871541023254395
+  },
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "Original",
+    "point_2d": [
+      1710,
+      1129
+    ],
+    "point_3d": [
+      0.0,
+      0.990063233965673,
+      -0.027081764207568755
+    ],
+    "processing_time": 2.7807140350341797
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2394,
+      1439
+    ],
+    "point_3d": [
+      0.4679947198422309,
+      0.8500451671183379,
+      -0.35089035001721014
+    ],
+    "processing_time": 2.7230899333953857
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "Original",
+    "point_2d": [
+      2103,
+      1350
+    ],
+    "point_3d": [
+      0.2816076231379082,
+      0.8902439024390244,
+      -0.268971719735146
+    ],
+    "processing_time": 2.736920118331909
+  }
+]

@@ -1,0 +1,242 @@
+[
+  {
+    "image": "red_4.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1504,
+      1018
+    ],
+    "point_3d": [
+      -0.17247509414995826,
+      1.0401987353206865,
+      0.11510592162269297
+    ],
+    "processing_time": 8.873831033706665
+  },
+  {
+    "image": "red_4.png",
+    "task": "fly to the red circle",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      1303,
+      489
+    ],
+    "point_3d": [
+      -0.41903750051537153,
+      1.2791327913279134,
+      0.9828685665590964
+    ],
+    "processing_time": 8.368089199066162
+  },
+  {
+    "image": "red_4.png",
+    "task": "fly to the red circle",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      1299,
+      487
+    ],
+    "point_3d": [
+      -0.4234546440342135,
+      1.2800361336946704,
+      0.9867457335317459
+    ],
+    "processing_time": 7.243927717208862
+  },
+  {
+    "image": "red_4.png",
+    "task": "fly to the red circle",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      1268,
+      467
+    ],
+    "point_3d": [
+      -0.458607835426058,
+      1.2890695573622404,
+      1.025764499646997
+    ],
+    "processing_time": 8.686760902404785
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1627,
+      921
+    ],
+    "point_3d": [
+      -0.07241934065459507,
+      1.084010840108401,
+      0.2506905180461739
+    ],
+    "processing_time": 10.972918033599854
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the red circle",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      1436,
+      376
+    ],
+    "point_3d": [
+      -0.2933601333052832,
+      1.330171635049684,
+      1.2089724323414273
+    ],
+    "processing_time": 6.820332050323486
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the red circle",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      1402,
+      487
+    ],
+    "point_3d": [
+      -0.3173334072081211,
+      1.2800361336946704,
+      0.9867457335317459
+    ],
+    "processing_time": 6.045400142669678
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the red circle",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      1306,
+      467
+    ],
+    "point_3d": [
+      -0.41918001247087655,
+      1.2890695573622404,
+      1.025764499646997
+    ],
+    "processing_time": 7.849108934402466
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1624,
+      1022
+    ],
+    "point_3d": [
+      -0.07187910400694082,
+      1.0383920505871724,
+      0.10974168365589848
+    ],
+    "processing_time": 9.602415323257446
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the red circle",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      1402,
+      918
+    ],
+    "point_3d": [
+      -0.26907275141888315,
+      1.0853658536585367,
+      0.2550523308904048
+    ],
+    "processing_time": 6.4974589347839355
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the red circle",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      1299,
+      929
+    ],
+    "point_3d": [
+      -0.3574112591848407,
+      1.080397470641373,
+      0.23910843640597618
+    ],
+    "processing_time": 5.83061408996582
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the red circle",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      1320,
+      907
+    ],
+    "point_3d": [
+      -0.34226863681061787,
+      1.0903342366757,
+      0.2711321283886487
+    ],
+    "processing_time": 6.006541013717651
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1662,
+      1053
+    ],
+    "point_3d": [
+      -0.03957760592882449,
+      1.024390243902439,
+      0.06877815664460353
+    ],
+    "processing_time": 8.38221287727356
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the red circle",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      1368,
+      952
+    ],
+    "point_3d": [
+      -0.2945482176690343,
+      1.0700090334236676,
+      0.2062103601567313
+    ],
+    "processing_time": 6.042118072509766
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the red circle",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      1419,
+      952
+    ],
+    "point_3d": [
+      -0.25062436064821336,
+      1.0700090334236676,
+      0.2062103601567313
+    ],
+    "processing_time": 6.574068069458008
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the red circle",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      1309,
+      952
+    ],
+    "point_3d": [
+      -0.3453620914774349,
+      1.0700090334236676,
+      0.2062103601567313
+    ],
+    "processing_time": 7.686038017272949
+  }
+]
