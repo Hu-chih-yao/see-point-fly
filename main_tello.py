@@ -16,19 +16,6 @@ import yaml
 from tello_controller import TelloController
 from datetime import datetime
 
-def frame_consumer_thread(tello_controller, stop_event):
-    """Thread function to continuously consume frames from Tello"""
-    print("Starting frame consumer thread")
-    while not stop_event.is_set():
-        try:
-            # Just capture and discard frames to keep the buffer from overflowing
-            frame = tello_controller.capture_frame()
-            time.sleep(0.03)  # ~30fps - adjust as needed
-        except Exception as e:
-            print(f"Error in frame consumer: {e}")
-            time.sleep(0.1)
-    print("Frame consumer thread stopped")
-
 def save_frame_to_directory(frame, directory, prefix="frame"):
     """
     Save a frame to the specified directory with a timestamp
@@ -59,7 +46,7 @@ def save_frame_to_directory(frame, directory, prefix="frame"):
         print(f"Error saving frame to {filepath}: {e}")
         return None
 
-def wait_for_camera_ready(tello_controller, max_attempts=10, delay=0.5, save_frames=True):
+def wait_for_camera_ready(tello_controller, max_attempts=15, delay=1.0, save_frames=True):
     """
     Wait until the Tello camera provides valid frames
     
@@ -75,6 +62,9 @@ def wait_for_camera_ready(tello_controller, max_attempts=10, delay=0.5, save_fra
     """
     print("\nWaiting for camera to initialize...")
     last_good_frame = None
+    
+    # Give frame provider time to start capturing frames
+    time.sleep(2.0)
     
     # Create directory for debug frames if needed
     if save_frames:
@@ -93,13 +83,21 @@ def wait_for_camera_ready(tello_controller, max_attempts=10, delay=0.5, save_fra
             except Exception as e:
                 print(f"Error saving debug frame: {e}")
         
+        # Skip checking blank frames
+        if frame is None or np.sum(frame) == 0:
+            print(f"Received blank frame, retrying in {delay} seconds...")
+            time.sleep(delay)
+            continue
+        
         # Check if frame is valid and not the error placeholder
-        if frame is not None and np.sum(frame) > 0:
-            # Make sure it's not just the error image by checking if error text is present
+        try:
             # Convert to grayscale for text detection
             gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
             # Check if the frame has actual content (non-zero standard deviation)
-            if np.std(gray) > 10:  # Real camera frames should have variation
+            std_dev = np.std(gray)
+            print(f"Frame standard deviation: {std_dev:.2f}")
+            
+            if std_dev > 10:  # Real camera frames should have variation
                 print("Camera ready!")
                 
                 # Save the good frame with timestamp
@@ -111,7 +109,9 @@ def wait_for_camera_ready(tello_controller, max_attempts=10, delay=0.5, save_fra
                 
                 last_good_frame = frame
                 return True, last_good_frame
-                
+        except Exception as e:
+            print(f"Error checking frame: {e}")
+        
         print(f"Camera not ready yet, waiting {delay} seconds...")
         time.sleep(delay)
     
@@ -166,36 +166,36 @@ def main():
         return 0
     
     # Create controller
-    tello_controller = TelloController()
+    try:
+        print("\nConnecting to Tello drone...")
+        tello_controller = TelloController()
+    except Exception as e:
+        print(f"Failed to connect to Tello: {e}")
+        return 1
     
     try:
         # Wait for camera to be ready (unless skip flag is provided)
         last_good_frame = None
         if not args.skip_camera_check:
-            camera_ready, last_good_frame = wait_for_camera_ready(tello_controller)
+            # Try a few times to initialize camera
+            camera_ready = False
+            for init_attempt in range(3):
+                print(f"\nCamera initialization attempt {init_attempt+1}/3")
+                camera_ready, last_good_frame = wait_for_camera_ready(tello_controller)
+                if camera_ready:
+                    break
+                # Short wait between attempts
+                print("Retrying camera initialization...")
+                time.sleep(2.0)
+                
             if not camera_ready and args.debug:
                 print("Continuing despite camera initialization issues (debug mode)...")
             elif not camera_ready:
-                print("Camera not ready. Try restarting the Tello or use --skip-camera-check to bypass this check.")
+                print("Camera not ready after multiple attempts. Try restarting the Tello or use --skip-camera-check to bypass this check.")
                 return 1
-        
-        # Start a thread to consume frames while waiting for user input
-        # This prevents buffer overflow and decoding errors
-        frame_consumer_stop = threading.Event()
-        frame_consumer = threading.Thread(
-            target=frame_consumer_thread, 
-            args=(tello_controller, frame_consumer_stop),
-            daemon=True
-        )
-        frame_consumer.start()
         
         # Get initial command from user
         current_command = input("\nEnter high-level command (e.g., 'navigate through the center of the room'): ")
-        
-        # Stop the frame consumer thread after input received
-        frame_consumer_stop.set()
-        if frame_consumer.is_alive():
-            frame_consumer.join(timeout=1.0)
         
         print("\nStarting control loop...")
         print("Press Ctrl+C to exit")
@@ -223,7 +223,7 @@ def main():
         frame_count = 0
         
         while True:
-            # Capture current view from Tello camera
+            # Capture current view from Tello camera - now always fresh thanks to RealtimeFrameProvider
             frame = tello_controller.capture_frame()
             
             if frame is None:

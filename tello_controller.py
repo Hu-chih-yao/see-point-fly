@@ -16,11 +16,90 @@ from datetime import datetime
 from djitellopy import Tello  # Import Tello
 
 
+class RealtimeFrameProvider:
+    """
+    Dedicated provider that continuously updates and provides the latest frame from Tello.
+    Ensures that any frame access is getting the absolute most recent camera view.
+    """
+    def __init__(self, tello):
+        self.tello = tello
+        self.latest_frame = None
+        self.frame_lock = threading.Lock()
+        self.running = True
+        self.frame_count = 0
+        self.initialization_delay = 2.0  # Seconds to wait before starting frame grabbing
+        
+        print(f"Initializing frame provider (waiting {self.initialization_delay}s for camera)...")
+        time.sleep(self.initialization_delay)  # Allow camera time to stabilize
+        
+        # Start background thread for frame updates
+        self.update_thread = threading.Thread(target=self._update_frame_loop)
+        self.update_thread.daemon = True
+        self.update_thread.start()
+    
+    def _update_frame_loop(self):
+        """Continuously update the latest frame"""
+        retry_count = 0
+        max_retries = 5
+        retry_delay = 0.5
+        
+        while self.running:
+            try:
+                # Get frame read object (avoiding frequent recreation)
+                frame_read = self.tello.get_frame_read()
+                if frame_read and frame_read.frame is not None:
+                    frame = frame_read.frame.copy()  # Make a copy to avoid reference issues
+                    if frame is not None and frame.size > 0:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        with self.frame_lock:
+                            self.latest_frame = frame
+                            self.frame_count += 1
+                            retry_count = 0  # Reset retry count on success
+                
+                # Use a slower update rate to reduce resource contention
+                time.sleep(0.05)  # 20fps is plenty for our needs
+                
+            except Exception as e:
+                retry_count += 1
+                if retry_count <= max_retries:
+                    print(f"Frame update error (retry {retry_count}/{max_retries}): {e}")
+                    time.sleep(retry_delay)
+                else:
+                    print(f"Frame update failed after {max_retries} retries: {e}")
+                    # Don't spam logs with errors, wait longer between retries after max is reached
+                    time.sleep(1.0)
+    
+    def get_frame(self):
+        """Get the absolute latest frame"""
+        with self.frame_lock:
+            if self.latest_frame is None:
+                # Return blank frame as fallback
+                blank = np.zeros((720, 960, 3), dtype=np.uint8)
+                cv2.putText(blank, "No frame available", (50, 50), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+                return blank
+            return self.latest_frame.copy()
+    
+    def get_frame_count(self):
+        """Get the number of frames processed since startup"""
+        with self.frame_lock:
+            return self.frame_count
+    
+    def stop(self):
+        """Stop the frame provider"""
+        self.running = False
+        if self.update_thread.is_alive():
+            self.update_thread.join(timeout=1.0)
+
+
 class TelloController:
     def __init__(self):
         self.tello = Tello()  # Create Tello instance
         self.tello.connect()
         self.tello.streamon()
+        
+        # Initialize real-time frame provider
+        self.frame_provider = RealtimeFrameProvider(self.tello)
         
         # Initialize control parameters
         self.action_queue = queue.Queue()
@@ -32,7 +111,7 @@ class TelloController:
         self.manual_key_pressed = None
         
         # Default speed settings
-        self.default_speed = 70  # Default speed value
+        self.default_speed = 50  # Default speed value
         
         # Start control thread
         self.control_thread = threading.Thread(target=self._tello_control_loop)
@@ -62,23 +141,22 @@ class TelloController:
         }
         
         # Manual control mapping (key -> (command, duration in ms))
-        # Updated key mapping according to requirements
         self.manual_control_map = {
             # Using string representation for special keys
-            'Key.up': ('pitch_forward', 50),       # Forward with up arrow
-            'Key.down': ('pitch_back', 50),        # Backward with down arrow
-            'a': ('yaw_left', 50),                 # Turn left with A
-            'd': ('yaw_right', 50),                # Turn right with D
-            'Key.left': ('roll_left', 50),         # Roll left with left arrow
-            'Key.right': ('roll_right', 50),       # Roll right with right arrow
-            'w': ('increase_throttle', 50),        # Up with W
-            's': ('decrease_throttle', 50),        # Down with S
-            'l': ('land', 0),                      # Land with L
-            't': ('takeoff', 0),                   # Takeoff with T
-            'e': (None, 0)                         # Emergency stop with E
+            'Key.up': ('pitch_forward', self.default_speed),       # Forward with up arrow
+            'Key.down': ('pitch_back', self.default_speed),        # Backward with down arrow
+            'a': ('yaw_left', self.default_speed),                 # Turn left with A
+            'd': ('yaw_right', self.default_speed),                # Turn right with D
+            'Key.left': ('roll_left', self.default_speed),         # Roll left with left arrow
+            'Key.right': ('roll_right', self.default_speed),       # Roll right with right arrow
+            'w': ('increase_throttle', self.default_speed),        # Up with W
+            's': ('decrease_throttle', self.default_speed),        # Down with S
+            'l': ('land', self.default_speed),                      # Land with L
+            't': ('takeoff', self.default_speed),                   # Takeoff with T
+            'e': (None, self.default_speed)                         # Emergency stop with E
         }
         
-        # Opposite actions for oscillation prevention (same as DroneController)
+        # Opposite actions for oscillation prevention
         self.opposite_actions = {
             'yaw_left': 'yaw_right',
             'yaw_right': 'yaw_left',
@@ -97,7 +175,7 @@ class TelloController:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash-exp",
+            model_name="gemini-2.0-flash",
             generation_config={
                 "temperature": 0.4,
                 "top_p": 0.95,
@@ -329,11 +407,10 @@ class TelloController:
         self.action_queue.put(action_tuple)
         
     def capture_frame(self):
-        """Capture frame from Tello camera"""
+        """Capture the absolute latest frame from Tello camera"""
         try:
-            frame = self.tello.get_frame_read().frame
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            return frame
+            # Use the frame provider to get the latest frame
+            return self.frame_provider.get_frame()
         except Exception as e:
             print(f"Error capturing Tello frame: {e}")
             # Return a blank image with error message as fallback
@@ -440,6 +517,10 @@ class TelloController:
             self.tello.streamoff()
         except:
             pass
+        
+        # Stop frame provider
+        if hasattr(self, 'frame_provider'):
+            self.frame_provider.stop()
         
         # Stop keyboard listener
         if hasattr(self, 'key_listener') and self.key_listener.is_alive():
