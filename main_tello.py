@@ -213,7 +213,7 @@ def main():
         time.sleep(3)
         
         # Take off
-        tello_controller.takeoff()
+        #tello_controller.takeoff()
         
         # Create directory for storing frames sent to Gemini
         gemini_frames_dir = "Tello_frame_capture"
