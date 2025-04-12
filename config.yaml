@@ -1,0 +1,2 @@
+mode: "single"  # or "waypoint"   s
+command_loop_delay: 0  # seconds between actions s
