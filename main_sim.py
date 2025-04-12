@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Main drone control application
+Main drone control application for simulator
 Uses screen capture, depth estimation, and LLM-based command processing
 """
 
@@ -99,7 +99,7 @@ def main():
     # Load config
     try:
         import yaml
-        with open('config.yaml', 'r') as f:
+        with open('config_sim.yaml', 'r') as f:
             config = yaml.safe_load(f)
             print(f"Mode: {config['mode']}")
     except Exception as e:

@@ -13,7 +13,7 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 try:
-    from drone_controller import print_monitor_info
+    from VLM_Tello_integration.drone_controller_sim import print_monitor_info
 except ImportError:
     # Define backup function in case import fails
     def print_monitor_info(monitor_id=None):

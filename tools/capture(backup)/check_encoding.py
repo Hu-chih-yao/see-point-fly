@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 try:
     from action_projector import ActionProjector
-    from drone_controller import capture_screen
+    from VLM_Tello_integration.drone_controller_sim import capture_screen
 except ImportError:
     print("Error importing project modules. Make sure your PYTHONPATH includes the drone project root directory.")
     sys.exit(1)

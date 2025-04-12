@@ -1,0 +1,3 @@
+mode: "single"  # or "waypoint"
+command_loop_delay: 0  # seconds between actions
+monitor: 1  # monitor index to capture (1=primary monitor) 

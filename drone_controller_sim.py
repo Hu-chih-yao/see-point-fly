@@ -11,7 +11,7 @@ import os
 import threading
 import queue
 from collections import deque
-from drone_space import DroneActionSpace, ActionPoint
+from drone_space_sim import DroneActionSpace, ActionPoint
 from action_projector_sim import ActionProjector
 import json
 from datetime import datetime

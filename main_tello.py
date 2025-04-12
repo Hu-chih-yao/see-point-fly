@@ -131,7 +131,7 @@ def main():
     
     # Load config
     try:
-        with open('config.yaml', 'r') as f:
+        with open('config_tello.yaml', 'r') as f:
             config = yaml.safe_load(f)
             print(f"Mode: {config['mode']}")
     except Exception as e:
@@ -213,7 +213,7 @@ def main():
         time.sleep(3)
         
         # Take off
-        #tello_controller.takeoff()
+        tello_controller.takeoff()
         
         # Create directory for storing frames sent to Gemini
         gemini_frames_dir = "Tello_frame_capture"

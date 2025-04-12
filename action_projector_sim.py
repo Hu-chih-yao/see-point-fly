@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from drone_space import DroneActionSpace, ActionPoint
+from drone_space_sim import DroneActionSpace, ActionPoint
 from typing import Dict, List, Tuple
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -516,44 +516,29 @@ class ActionProjector:
 
             Task: {instruction}
 
-            First, identify ALL objects in the image that match the description "{instruction}". 
-            Then, select the MOST RELEVANT target object and place a single point DIRECTLY ON that object.
+            1. Point to the SINGLE best next position for the drone to move.
+            2. Identify any obstacles in the path.
 
             Return in this exact JSON format:
-            [{{"point": [y, x], "label": "action description"}}]
+            {{
+                "point": [y, x],
+                "label": "action description",
+                "obstacles": [
+                    {{"bounding_box": [ymin, xmin, ymax, xmax], "label": "obstacle_description"}}
+                ]
+            }}
 
             Coordinate system:
             - x: 0-1000 scale (500=center, >500=right, <500=left)
             - y: 0-1000 scale (lower values=higher in image/sky)
 
-            IMPORTANT: 
-            - Place the point PRECISELY on the target object, not nearby or in its direction
+            Requirements:
+            - Place the point PRECISELY where the drone should move next
+            - Consider immediate obstacles and choose a safe path
             - If the target is a vehicle or structure, aim for its center
-            - Prioritize the clearest/closest matching object if multiple exist
-            - Your accuracy in point placement is critical for navigation success"""
-        ''' old prompt
-        prompt = f"""You are a drone navigation expert. Looking at this drone camera view:
-
-        Task: {instruction}
-
-        Generate the SINGLE best next position for the drone to move toward.
-
-        Return in this exact JSON format:
-        [{{"point": [y, x], "label": "action description"}}]
-
-        Coordinate system:
-        - x: 0-1000 scale (500=center, >500=right, <500=left)
-        - y: 0-1000 scale (lower values=higher in image/sky)
-
-        Response requirements:
-        - Choose ONE precise position that makes meaningful progress toward the goal
-        - Point should be 10-30% of the way toward the final destination
-        - Provide a clear, concise label describing this movement step
-
-        Example for "move toward the window":
-        [{{"point": [450, 600], "label": "shift right and slightly upward toward window"}}]
-        """
-        '''
+            - Identify ALL obstacles that could block the path with accurate bounding boxes
+            - Your accuracy in point placement and obstacle detection is critical for safe navigation"""
+        
         try:
             # Get response from Gemini
             response = self.model.generate_content([
@@ -576,15 +561,12 @@ class ActionProjector:
             print(response_text)
             
             # Parse JSON response
-            points_data = json.loads(response_text)
-            if not points_data:
-                raise ValueError("No points returned from Gemini")
+            response_data = json.loads(response_text)
+            if not response_data:
+                raise ValueError("No data returned from Gemini")
             
-            # Take first (and should be only) point
-            point_info = points_data[0]
-            
-            # Convert normalized coordinates to pixel coordinates
-            y, x = point_info['point']
+            # Get waypoint coordinates
+            y, x = response_data['point']
             pixel_x = int((x / 1000.0) * self.image_width)
             pixel_y = int((y / 1000.0) * self.image_height)
             
@@ -599,10 +581,28 @@ class ActionProjector:
                 screen_y=pixel_y
             )
             
-            print(f"\nIdentified single action: {point_info['label']}")
+            # Add obstacles if present
+            if 'obstacles' in response_data:
+                obstacles = []
+                for obstacle in response_data['obstacles']:
+                    if 'bounding_box' in obstacle:
+                        ymin, xmin, ymax, xmax = obstacle['bounding_box']
+                        # Convert to pixel coordinates if normalized
+                        if max(obstacle['bounding_box']) <= 1000:
+                            xmin = int((xmin / 1000.0) * self.image_width)
+                            ymin = int((ymin / 1000.0) * self.image_height)
+                            xmax = int((xmax / 1000.0) * self.image_width)
+                            ymax = int((ymax / 1000.0) * self.image_height)
+                        obstacle['bounding_box'] = [ymin, xmin, ymax, xmax]
+                    obstacles.append(obstacle)
+                action.detected_obstacles = obstacles
+            
+            print(f"\nIdentified single action: {response_data.get('label', 'move')}")
             print(f"2D Normalized: ({x}, {y})")
             print(f"2D Pixels: ({pixel_x}, {pixel_y})")
             print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
+            if action.detected_obstacles:
+                print(f"Detected {len(action.detected_obstacles)} obstacles")
             
             return action
             
