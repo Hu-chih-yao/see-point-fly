@@ -1,3 +1,0 @@
-mode: "single"  # or "waypoint"
-command_loop_delay: 0  # seconds between actions
-default_speed: 50  # default speed for Tello movements 

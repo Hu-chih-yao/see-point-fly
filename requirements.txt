@@ -1,9 +1,0 @@
-opencv-python
-numpy
-mss
-pynput
-google-generativeai
-python-dotenv
-Pillow
-pyyaml
-djitellopy 
