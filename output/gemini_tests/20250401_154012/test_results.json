@@ -1,0 +1,122 @@
+[
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2223,
+      1217
+    ],
+    "point_3d": [
+      0.39239939846495236,
+      0.950316169828365,
+      -0.12997270048522963
+    ],
+    "processing_time": 8.85676121711731
+  },
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      2311,
+      936
+    ],
+    "point_3d": [
+      0.5211084166876846,
+      1.0772357723577235,
+      0.22903308115448334
+    ],
+    "processing_time": 2.8955347537994385
+  },
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      2380,
+      934
+    ],
+    "point_3d": [
+      0.5814233298970248,
+      1.0781391147244805,
+      0.23190613825646414
+    ],
+    "processing_time": 2.8422141075134277
+  },
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      2335,
+      976
+    ],
+    "point_3d": [
+      0.5328292979261592,
+      1.0591689250225835,
+      0.1725153980537509
+    ],
+    "processing_time": 2.300787925720215
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2325,
+      1439
+    ],
+    "point_3d": [
+      0.42078472617393564,
+      0.8500451671183379,
+      -0.35089035001721014
+    ],
+    "processing_time": 3.7245869636535645
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      2588,
+      1304
+    ],
+    "point_3d": [
+      0.6438217533538125,
+      0.9110207768744354,
+      -0.2231443249442858
+    ],
+    "processing_time": 2.707617998123169
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      2571,
+      1317
+    ],
+    "point_3d": [
+      0.6272867310061604,
+      0.9051490514905149,
+      -0.23633646419030435
+    ],
+    "processing_time": 3.612144947052002
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      2602,
+      1284
+    ],
+    "point_3d": [
+      0.6605734520419773,
+      0.9200542005420054,
+      -0.2024780815211245
+    ],
+    "processing_time": 2.7139487266540527
+  }
+]

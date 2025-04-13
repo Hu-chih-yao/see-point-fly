@@ -1,0 +1,122 @@
+[
+  {
+    "image": "red_4.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1368,
+      774
+    ],
+    "point_3d": [
+      -0.31667974267751386,
+      1.1504065040650406,
+      0.4763069300434151
+    ],
+    "processing_time": 3.081533908843994
+  },
+  {
+    "image": "red_4.png",
+    "task": "fly to the red circle",
+    "prompt": "precise",
+    "point_2d": [
+      1197,
+      885
+    ],
+    "point_3d": [
+      -0.4543179347246311,
+      1.100271002710027,
+      0.3036994324265827
+    ],
+    "processing_time": 3.079874038696289
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1710,
+      774
+    ],
+    "point_3d": [
+      0.0,
+      1.1504065040650406,
+      0.4763069300434151
+    ],
+    "processing_time": 3.1487631797790527
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the red circle",
+    "prompt": "precise",
+    "point_2d": [
+      1710,
+      885
+    ],
+    "point_3d": [
+      0.0,
+      1.100271002710027,
+      0.3036994324265827
+    ],
+    "processing_time": 3.083656072616577
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1231,
+      841
+    ],
+    "point_3d": [
+      -0.4318693933253343,
+      1.1201445347786811,
+      0.3704648766682349
+    ],
+    "processing_time": 2.7277538776397705
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the red circle",
+    "prompt": "precise",
+    "point_2d": [
+      1197,
+      996
+    ],
+    "point_3d": [
+      -0.4336162554329915,
+      1.0501355013550135,
+      0.14493045574544433
+    ],
+    "processing_time": 3.015692710876465
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the red circle",
+    "prompt": "baseline",
+    "point_2d": [
+      1607,
+      952
+    ],
+    "point_3d": [
+      -0.08870896614008927,
+      1.0700090334236676,
+      0.2062103601567313
+    ],
+    "processing_time": 2.959929943084717
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the red circle",
+    "prompt": "precise",
+    "point_2d": [
+      1265,
+      841
+    ],
+    "point_3d": [
+      -0.4012147808554776,
+      1.1201445347786811,
+      0.3704648766682349
+    ],
+    "processing_time": 2.953774929046631
+  }
+]
