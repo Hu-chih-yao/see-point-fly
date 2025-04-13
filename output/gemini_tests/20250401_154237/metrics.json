@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "count": 4,
+    "avg_processing_time": 2.9479138255119324,
+    "avg_center_distance": 488.75728346317686
+  },
+  "Object-Centric": {
+    "count": 4,
+    "avg_processing_time": 2.4706830978393555,
+    "avg_center_distance": 641.0095003142017
+  },
+  "Two-Stage": {
+    "count": 4,
+    "avg_processing_time": 2.5545239448547363,
+    "avg_center_distance": 618.652851903366
+  },
+  "Contextual Awareness": {
+    "count": 4,
+    "avg_processing_time": 2.7805980443954468,
+    "avg_center_distance": 733.8956135664803
+  }
+}
