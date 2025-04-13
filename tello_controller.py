@@ -111,8 +111,8 @@ class TelloController:
         self.manual_key_pressed = None
         
         # Default speed settings
-        self.default_speed = 50  # Default speed value
-        
+        self.default_speed = 100  # Default speed value
+
         # Start control thread
         self.control_thread = threading.Thread(target=self._tello_control_loop)
         self.control_thread.daemon = True

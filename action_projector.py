@@ -332,7 +332,7 @@ class ActionProjector:
         return actions[chosen_number-1], reason
     '''
     
-    def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 1) -> Tuple[float, float, float]:
+    def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 0.5) -> Tuple[float, float, float]:
         """Project 2D image point back to 3D space"""
         # Set reference point at 20% from top of frame
         reference_y = self.image_height * 0.2

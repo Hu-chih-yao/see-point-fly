@@ -129,6 +129,26 @@ class DroneController:
                 return True
         return False
     
+    def wait_for_queue_empty(self, timeout=30, debug=False):
+        """Wait until action queue is empty or timeout occurs"""
+        start_time = time.time()
+        if debug:
+            print(f"Queue size before waiting: {self.action_queue.qsize()}")
+        
+        while not self.action_queue.empty():
+            if debug:
+                print(f"Queue not empty, remaining items: {self.action_queue.qsize()}")
+            
+            remaining = timeout - (time.time() - start_time)
+            if remaining <= 0:
+                print("Warning: Timed out waiting for action queue to empty")
+                return False
+            time.sleep(0.1)  # Short sleep to prevent CPU spinning
+        
+        if debug:
+            print(f"Queue emptied after {time.time() - start_time:.2f} seconds")
+        return True
+
     def process_drone_command(self, current_frame, original_command, last_execution=None):
         """Process drone command using Gemini's spatial understanding"""
         try:
