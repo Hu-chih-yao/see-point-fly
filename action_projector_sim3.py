@@ -408,7 +408,7 @@ class ActionProjector:
                 
                 # Save visualization
                 save_path = f"{self.output_dir}/decision_{timestamp}.jpg"
-                cv2.imwrite(save_path, cv2.cvtColor(viz_image, cv2.COLOR_RGB2BGR))
+                cv2.imwrite(save_path, viz_image)
                 
                 # Save decision data
                 decision_data = {

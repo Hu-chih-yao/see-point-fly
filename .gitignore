@@ -38,3 +38,6 @@ ENV/
 .DS_Store
 Thumbs.db 
 .qodo
+
+tello_debug_frames
+Tello_frame_capture
