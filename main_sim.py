@@ -120,14 +120,6 @@ def main():
         print("Press Ctrl+C to exit")
         
         while True:
-            # Capture current view from specified monitor
-            frame = capture_screen(monitor_index=args.monitor)
-            
-            if frame is None:
-                print("Error: Failed to capture screen")
-                time.sleep(1)
-                continue
-            
 
             # Wait for previous actions to complete before processing new frame
             if args.debug:
@@ -136,6 +128,14 @@ def main():
                 print("Action queue empty, processing new frame...")
             else:
                 drone_controller.wait_for_queue_empty()
+            # Capture current view from specified monitor
+            frame = capture_screen(monitor_index=args.monitor)
+            
+            if frame is None:
+                print("Error: Failed to capture screen")
+                time.sleep(1)
+                continue
+            
             # Process command
             response = drone_controller.process_spatial_command(
                 frame, 

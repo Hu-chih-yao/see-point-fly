@@ -26,6 +26,9 @@ class DroneActionSpace:
         # Add state tracking
         self.current_position = [0.0, 0.0, 0.0]  # [x, y, z]
         self.current_yaw = 0.0  # degrees
+        self.rotate_time = 3750 #time to rotate 360 degree (7500->50, 4166->90, 3750->100)
+        self.move_time = 500 #time to move 1 unit (1000->50, 555->90, 500->100)
+
         
     def sample_actions(self) -> List[ActionPoint]:
         """Sample possible relative movements from current position (0,0,0)"""
@@ -58,21 +61,21 @@ class DroneActionSpace:
         # 2. Add yaw command if needed (if there's horizontal movement)
         if abs(action.dx) > 0.01 or abs(action.dy) > 0.01:
             if target_angle > 180:
-                commands.append(('yaw_left', int(abs(360 - target_angle) * (7500/360))))
+                commands.append(('yaw_left', int(abs(360 - target_angle) * (self.rotate_time/360))))
             else:
-                commands.append(('yaw_right', int(target_angle * (7500/360))))
+                commands.append(('yaw_right', int(target_angle * (self.rotate_time/360))))
         
         # 3. Add forward movement if needed
         distance_xy = math.sqrt(action.dx**2 + action.dy**2)
         if distance_xy > 0.01:
-            commands.append(('pitch_forward', int(distance_xy * 1000)))
+            commands.append(('pitch_forward', int(distance_xy * self.move_time)))
         
         # 4. Add vertical movement if needed
         if abs(action.dz) > 0.01:
             if action.dz > 0:
-                commands.append(('increase_throttle', int(abs(action.dz) * 1000)))
+                commands.append(('increase_throttle', int(abs(action.dz) * self.move_time)))
             else:
-                commands.append(('decrease_throttle', int(abs(action.dz) * 1000)))
+                commands.append(('decrease_throttle', int(abs(action.dz) * self.move_time)))
         
         return commands
     
