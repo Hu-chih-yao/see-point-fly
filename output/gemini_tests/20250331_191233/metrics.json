@@ -1,0 +1,12 @@
+{
+  "baseline": {
+    "count": 2,
+    "avg_processing_time": 3.2616584300994873,
+    "avg_center_distance": 583.7536624929317
+  },
+  "precise": {
+    "count": 2,
+    "avg_processing_time": 2.567686080932617,
+    "avg_center_distance": 427.5
+  }
+}

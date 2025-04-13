@@ -1,0 +1,122 @@
+[
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      1026,
+      608
+    ],
+    "point_3d": [
+      0.26172393338679495,
+      0.9507678410117435,
+      -0.12885234299530554
+    ],
+    "processing_time": 3.017101764678955
+  },
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "detailed",
+    "point_2d": [
+      1111,
+      719
+    ],
+    "point_3d": [
+      0.35049797513921943,
+      0.8504968383017164,
+      -0.35001933524684814
+    ],
+    "processing_time": 2.56685733795166
+  },
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "simple",
+    "point_2d": [
+      1111,
+      664
+    ],
+    "point_3d": [
+      0.3709731622158599,
+      0.9001806684733514,
+      -0.2473507857190669
+    ],
+    "processing_time": 2.63279390335083
+  },
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "precise",
+    "point_2d": [
+      1026,
+      553
+    ],
+    "point_3d": [
+      0.2754007185043946,
+      1.0004516711833784,
+      0.001243905684301692
+    ],
+    "processing_time": 2.577960968017578
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      1162,
+      719
+    ],
+    "point_3d": [
+      0.4203237436239857,
+      0.8504968383017164,
+      -0.35001933524684814
+    ],
+    "processing_time": 2.685898780822754
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "detailed",
+    "point_2d": [
+      1154,
+      719
+    ],
+    "point_3d": [
+      0.4093706819008852,
+      0.8504968383017164,
+      -0.35001933524684814
+    ],
+    "processing_time": 2.6636428833007812
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "simple",
+    "point_2d": [
+      1197,
+      664
+    ],
+    "point_3d": [
+      0.4955969588977504,
+      0.9001806684733514,
+      -0.2473507857190669
+    ],
+    "processing_time": 2.187361001968384
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "precise",
+    "point_2d": [
+      1111,
+      608
+    ],
+    "point_3d": [
+      0.39182062542116664,
+      0.9507678410117435,
+      -0.12885234299530554
+    ],
+    "processing_time": 2.737567663192749
+  }
+]

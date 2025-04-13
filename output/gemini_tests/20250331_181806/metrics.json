@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "count": 2,
+    "avg_processing_time": 2.8515002727508545,
+    "avg_center_distance": 264.12155905051145
+  },
+  "detailed": {
+    "count": 2,
+    "avg_processing_time": 2.6152501106262207,
+    "avg_center_distance": 323.29270998336256
+  },
+  "simple": {
+    "count": 2,
+    "avg_processing_time": 2.410077452659607,
+    "avg_center_distance": 319.11916977412125
+  },
+  "precise": {
+    "count": 2,
+    "avg_processing_time": 2.6577643156051636,
+    "avg_center_distance": 216.36885864877212
+  }
+}

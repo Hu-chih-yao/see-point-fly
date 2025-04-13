@@ -1,0 +1,242 @@
+[
+  {
+    "image": "red_4.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2565,
+      774
+    ],
+    "point_3d": [
+      0.7916993566937846,
+      1.1504065040650406,
+      0.4763069300434151
+    ],
+    "processing_time": 3.331714153289795
+  },
+  {
+    "image": "red_4.png",
+    "task": "fly to the car",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      2722,
+      633
+    ],
+    "point_3d": [
+      0.9889515358017378,
+      1.2140921409214092,
+      0.7155192592492087
+    ],
+    "processing_time": 2.423551082611084
+  },
+  {
+    "image": "red_4.png",
+    "task": "fly to the car",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      2708,
+      624
+    ],
+    "point_3d": [
+      0.9785358023190364,
+      1.2181571815718157,
+      0.7315462679734913
+    ],
+    "processing_time": 2.6247990131378174
+  },
+  {
+    "image": "red_4.png",
+    "task": "fly to the car",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      2705,
+      624
+    ],
+    "point_3d": [
+      0.9755943119313037,
+      1.2181571815718157,
+      0.7315462679734913
+    ],
+    "processing_time": 3.0686211585998535
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      1710,
+      885
+    ],
+    "point_3d": [
+      0.0,
+      1.100271002710027,
+      0.3036994324265827
+    ],
+    "processing_time": 2.9868080615997314
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the car",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      2134,
+      577
+    ],
+    "point_3d": [
+      0.42297548393891854,
+      1.2393857271906052,
+      0.8167209547601069
+    ],
+    "processing_time": 2.7890172004699707
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the car",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      2055,
+      549
+    ],
+    "point_3d": [
+      0.34767827430529846,
+      1.2520325203252032,
+      0.8686426450299927
+    ],
+    "processing_time": 2.8202078342437744
+  },
+  {
+    "image": "red_1.png",
+    "task": "fly to the car",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      1881,
+      575
+    ],
+    "point_3d": [
+      0.1707111451496767,
+      1.2402890695573623,
+      0.8204004446217523
+    ],
+    "processing_time": 2.899117946624756
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2052,
+      885
+    ],
+    "point_3d": [
+      0.3028786231497541,
+      1.100271002710027,
+      0.3036994324265827
+    ],
+    "processing_time": 3.0381970405578613
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the car",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      2086,
+      1073
+    ],
+    "point_3d": [
+      0.3072906769558995,
+      1.015356820234869,
+      0.04292288905758326
+    ],
+    "processing_time": 2.699766159057617
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the car",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      2052,
+      1060
+    ],
+    "point_3d": [
+      0.2811201013717545,
+      1.0212285456187895,
+      0.059677708963290256
+    ],
+    "processing_time": 2.6718509197235107
+  },
+  {
+    "image": "red_3.png",
+    "task": "fly to the car",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      2130,
+      885
+    ],
+    "point_3d": [
+      0.371956203868119,
+      1.100271002710027,
+      0.3036994324265827
+    ],
+    "processing_time": 2.719881057739258
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2052,
+      885
+    ],
+    "point_3d": [
+      0.3028786231497541,
+      1.100271002710027,
+      0.3036994324265827
+    ],
+    "processing_time": 2.434936046600342
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the car",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      2082,
+      989
+    ],
+    "point_3d": [
+      0.31538186593987877,
+      1.053297199638663,
+      0.15453408152749545
+    ],
+    "processing_time": 1.97039794921875
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the car",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      2055,
+      989
+    ],
+    "point_3d": [
+      0.2924912466377908,
+      1.053297199638663,
+      0.15453408152749545
+    ],
+    "processing_time": 2.1012380123138428
+  },
+  {
+    "image": "red_2.png",
+    "task": "fly to the car",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      2462,
+      847
+    ],
+    "point_3d": [
+      0.6763675576413659,
+      1.11743450767841,
+      0.36123245705201823
+    ],
+    "processing_time": 2.43477201461792
+  }
+]

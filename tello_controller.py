@@ -14,8 +14,6 @@ from action_projector import ActionProjector
 import json
 from datetime import datetime
 from djitellopy import Tello  # Import Tello
-import logging
-import keyboard
 
 
 class RealtimeFrameProvider:
@@ -95,80 +93,17 @@ class RealtimeFrameProvider:
 
 
 class TelloController:
-    """
-    Controller for the Tello drone, handles communication and commands
-    Supports both direct control and action-based control
-    """
-    
     def __init__(self):
-        """Initialize the Tello controller"""
-        # Initialize Tello drone
-        self.drone = Tello()
-        self.is_connected = False
-        self.is_flying = False
-        self.action_projector = ActionProjector()
+        self.tello = Tello()  # Create Tello instance
+        self.tello.connect()
+        self.tello.streamon()
         
-        # Configure logging
-        self.logger = logging.getLogger('TelloController')
-        self.logger.setLevel(logging.INFO)
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-        
-        # Connect to the drone
-        try:
-            self.drone.connect()
-            self.is_connected = True
-            self.logger.info("Connected to Tello drone")
-            
-            # Initialize stream provider
-            self.frame_provider = RealtimeFrameProvider(self.drone)
-            self.frame_provider.start()
-        except Exception as e:
-            self.logger.error(f"Failed to connect to Tello: {e}")
-            raise
-        
-        # Initialize command queue and action counter
-        self.command_queue = queue.Queue()
-        self.action_counter = 0
-        self.last_command_time = time.time()
-        
-        # Initialize keyboard listener for manual control
-        self.key_listener = keyboard.Listener(
-            on_press=self._on_key_press,
-            on_release=self._on_key_release
-        )
-        self.key_listener.daemon = True
-        self.key_listener.start()
-        
-        # Manual control state
-        self.manual_control_active = False
-        self.pressed_keys = set()
-        
-        # Set output directory for visualizations
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        self.output_dir = f"tello_flight_data/{timestamp}"
-        os.makedirs(self.output_dir, exist_ok=True)
-        self.action_projector.set_output_dir(self.output_dir)
-        
-        # Set control mode and configuration
-        self.control_mode = "velocity"  # Options: "velocity", "distance"
-        self.config = {
-            "distance_scale": 100,  # cm per unit in 3D space
-            "velocity_scale": 50,   # Percentage of max speed
-            "command_duration": 0.5  # seconds for velocity commands
-        }
-        
-        # Start command processing thread
-        self.running = True
-        self.command_thread = threading.Thread(target=self._command_loop)
-        self.command_thread.daemon = True
-        self.command_thread.start()
+        # Initialize real-time frame provider
+        self.frame_provider = RealtimeFrameProvider(self.tello)
         
         # Initialize control parameters
         self.action_queue = queue.Queue()
+        self.running = True
         self.action_history = deque(maxlen=5)  # Keep last 5 actions
         
         # Add manual control flag
@@ -177,6 +112,18 @@ class TelloController:
         
         # Default speed settings
         self.default_speed = 50  # Default speed value
+        
+        # Start control thread
+        self.control_thread = threading.Thread(target=self._tello_control_loop)
+        self.control_thread.daemon = True
+        self.control_thread.start()
+        
+        # Start manual override keyboard listener
+        self.key_listener = Listener(
+            on_press=self._on_key_press,
+            on_release=self._on_key_release)
+        self.key_listener.daemon = True
+        self.key_listener.start()
         
         # Map abstract actions to Tello RC control parameters (left_right, forward_backward, up_down, yaw)
         # Format: (left_right, forward_backward, up_down, yaw)
@@ -238,7 +185,7 @@ class TelloController:
         )
 
         # Get battery level
-        battery = self.drone.get_battery()
+        battery = self.tello.get_battery()
         print(f"\nBattery level: {battery}%")
 
         # Initialize action space for command conversion
@@ -266,7 +213,7 @@ class TelloController:
                 except queue.Empty:
                     # If queue is empty and no manual control, stop the drone
                     if not self.manual_control_active and last_action is not None:
-                        self.drone.send_rc_control(0, 0, 0, 0)
+                        self.tello.send_rc_control(0, 0, 0, 0)
                         last_action = None
                     continue
                 
@@ -278,7 +225,7 @@ class TelloController:
                 print(f"Tello control error: {e}")
                 # Safety: try to stop the drone on error
                 try:
-                    self.drone.send_rc_control(0, 0, 0, 0)
+                    self.tello.send_rc_control(0, 0, 0, 0)
                 except:
                     pass
                 
@@ -290,7 +237,7 @@ class TelloController:
         if action == 'land':
             try:
                 print("Landing drone")
-                self.drone.land()
+                self.tello.land()
                 return
             except Exception as e:
                 print(f"Landing failed: {e}")
@@ -299,7 +246,7 @@ class TelloController:
         if action == 'takeoff':
             try:
                 print("Taking off")
-                self.drone.takeoff()
+                self.tello.takeoff()
                 return
             except Exception as e:
                 print(f"Takeoff failed: {e}")
@@ -315,7 +262,7 @@ class TelloController:
                 start_time = time.time()
                 
                 # Send RC command to Tello
-                self.drone.send_rc_control(lr, fb, ud, yaw)
+                self.tello.send_rc_control(lr, fb, ud, yaw)
                 
                 # Hold for duration
                 time.sleep(duration_ms / 1000.0)
@@ -324,7 +271,7 @@ class TelloController:
                 before_stop_time = time.time()
                 
                 # Stop movement after duration
-                self.drone.send_rc_control(0, 0, 0, 0)
+                self.tello.send_rc_control(0, 0, 0, 0)
                 
                 # Record end time
                 end_time = time.time()
@@ -346,7 +293,7 @@ class TelloController:
             except Exception as e:
                 print(f"Tello action failed: {e}")
                 # Safety: try to stop the drone
-                self.drone.send_rc_control(0, 0, 0, 0)
+                self.tello.send_rc_control(0, 0, 0, 0)
     
     def _on_key_press(self, key):
         """Handle manual key press for override"""
@@ -382,17 +329,17 @@ class TelloController:
                 cmd, duration = manual_cmd
                 if cmd is None:  # Emergency stop
                     print("EMERGENCY STOP")
-                    self.drone.send_rc_control(0, 0, 0, 0)
+                    self.tello.send_rc_control(0, 0, 0, 0)
                 elif cmd == 'land':
                     print("MANUAL OVERRIDE: Landing")
-                    self.drone.land()
+                    self.tello.land()
                 elif cmd == 'takeoff':
                     print("MANUAL OVERRIDE: Taking off")
-                    self.drone.takeoff()
+                    self.tello.takeoff()
                 else:
                     print(f"MANUAL OVERRIDE: {cmd}")
                     lr, fb, ud, yaw = self.action_map.get(cmd, (0, 0, 0, 0))
-                    self.drone.send_rc_control(lr, fb, ud, yaw)
+                    self.tello.send_rc_control(lr, fb, ud, yaw)
                 
         except AttributeError:
             # Special keys handling
@@ -425,7 +372,7 @@ class TelloController:
                 # For land and takeoff, we don't need to stop any movement
                 if cmd not in ['land', 'takeoff']:
                     # Stop the movement (only if it's not a one-time action)
-                    self.drone.send_rc_control(0, 0, 0, 0)
+                    self.tello.send_rc_control(0, 0, 0, 0)
                 
                 # Reset manual control if this was the active key
                 if self.manual_key_pressed == matched_key:
@@ -491,219 +438,51 @@ class TelloController:
             print(f"Queue emptied after {time.time() - start_time:.2f} seconds")
         return True
     
-    def process_spatial_command(self, image: np.ndarray, instruction: str, mode: str = "single") -> str:
-        """Process command using spatial understanding with obstacle awareness"""
+    def process_spatial_command(self, current_frame, instruction: str, mode: str = "waypoint"):
+        """Process command using spatial understanding system - same as DroneController"""
         try:
-            # Increment action counter
-            self.action_counter += 1
-            action_num = self.action_counter
-            
-            # Set mode and get actions with obstacle detection
+            # Set mode and get actions
             self.action_projector.set_mode(mode)
-            actions = self.action_projector.get_gemini_points(image, instruction)
+            actions = self.action_projector.get_gemini_points(current_frame, instruction)
             
             if not actions:
                 return "No valid actions identified"
             
-            # Build response text and visualization
-            response_text = f"\n=== Action #{action_num} ({mode.upper()} mode) ===\n"
-            viz_image = image.copy()
-            font = cv2.FONT_HERSHEY_SIMPLEX
+            response_text = f"\n=== {mode.upper()} MODE ===\n"
             
-            # Process waypoints
-            for i, action in enumerate(actions):
-                # Add action details to response
-                response_text += f"\nWaypoint {i+1}/{len(actions)}:"
+            if mode == "waypoint":
+                for i, action in enumerate(actions, 1):
+                    response_text += f"\nWaypoint {i}/{len(actions)}:"
+                    response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
+                    self._execute_spatial_action(action, quiet=True)
+            else:
+                action = actions[0]
+                if action is None:
+                    return "No valid action"
                 response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
-                
-                # Check for obstacles
-                has_obstacles = hasattr(action, 'detected_obstacles') and len(action.detected_obstacles) > 0
-                if has_obstacles:
-                    num_obstacles = len(action.detected_obstacles)
-                    response_text += f"\n⚠️ Detected {num_obstacles} obstacles - proceeding with caution"
-                    
-                    # Log obstacle information
-                    for j, obstacle in enumerate(action.detected_obstacles):
-                        label = obstacle.get('label', 'unknown')
-                        response_text += f"\n  • Obstacle {j+1}: {label}"
-                
-                # Draw waypoint on visualization
-                cv2.circle(viz_image, 
-                          (int(action.screen_x), int(action.screen_y)), 
-                          10, (0, 255, 0), -1)
-                
-                # Add label
-                cv2.putText(
-                    viz_image,
-                    f"{i+1}: ({action.dx:.1f}, {action.dy:.1f}, {action.dz:.1f})",
-                    (int(action.screen_x) + 15, int(action.screen_y)),
-                    font, 0.7, (255, 255, 255), 2
-                )
-                
-                # Draw obstacles if present
-                if hasattr(action, 'detected_obstacles'):
-                    for obstacle in action.detected_obstacles:
-                        if 'bounding_box' in obstacle:
-                            ymin, xmin, ymax, xmax = obstacle['bounding_box']
-                            # Draw rectangle for obstacle
-                            cv2.rectangle(viz_image, 
-                                        (int(xmin), int(ymin)), 
-                                        (int(xmax), int(ymax)),
-                                        (0, 0, 255), 2)  # Red color for obstacles
-                            # Add obstacle label
-                            cv2.putText(viz_image, obstacle.get('label', 'obstacle'),
-                                       (int(xmin), int(ymin)-10),
-                                       font, 0.7,
-                                       (0, 0, 255), 2)
-                
-                # Execute the action
-                if self.is_connected and self.is_flying:
-                    self.execute_action(action)
-                    response_text += f"\n✓ Executing movement"
-                else:
-                    response_text += f"\n✗ Not flying - action simulated only"
-            
-            # Save visualization with obstacles and waypoints
-            viz_path = f"{self.output_dir}/action_{action_num:03d}.jpg"
-            cv2.imwrite(viz_path, viz_image)
-            
-            # Save action data with obstacles
-            action_data = {
-                "action_number": action_num,
-                "mode": mode,
-                "instruction": instruction,
-                "actions": []
-            }
-            
-            for action in actions:
-                action_info = {
-                    "dx": float(action.dx),
-                    "dy": float(action.dy),
-                    "dz": float(action.dz),
-                    "screen_x": int(action.screen_x),
-                    "screen_y": int(action.screen_y)
-                }
-                
-                # Add obstacles if present
-                if hasattr(action, 'detected_obstacles'):
-                    action_info["obstacles"] = action.detected_obstacles
-                    
-                action_data["actions"].append(action_info)
-            
-            json_path = f"{self.output_dir}/decision_{action_num:03d}.json"
-            with open(json_path, 'w') as f:
-                json.dump(action_data, f, indent=2)
+                self._execute_spatial_action(action, quiet=True)
             
             return response_text
             
         except Exception as e:
-            self.logger.error(f"Error: {e}")
-            import traceback
-            traceback.print_exc()
-            return f"Error processing command: {str(e)}"
+            print(f"Error: {e}")
+            return "Error processing command"
 
-    def execute_action(self, action):
-        """Execute a spatial action with obstacle awareness"""
-        if not self.is_connected or not self.is_flying:
-            self.logger.warning("Cannot execute action: not flying")
-            return False
+    def _execute_spatial_action(self, action: ActionPoint, quiet: bool = False):
+        """Execute a single spatial action - adapted for Tello"""
+        commands = self.action_space.action_to_commands(action)
         
-        try:
-            # Check for obstacles
-            has_obstacles = hasattr(action, 'detected_obstacles') and len(action.detected_obstacles) > 0
-            if has_obstacles:
-                self.logger.warning(f"Detected {len(action.detected_obstacles)} obstacles - proceeding with caution")
-            
-            # Execute based on control mode
-            if self.control_mode == "distance":
-                return self._execute_distance_action(action)
-            else:
-                return self._execute_velocity_action(action)
-        except Exception as e:
-            self.logger.error(f"Action execution failed: {e}")
-            return False
-
-    def _execute_distance_action(self, action):
-        """Execute action using distance-based commands"""
-        # Get scaling factor from config
-        distance_scale = self.config.get("distance_scale", 100)
-        
-        # Calculate movement magnitudes
-        distance_x = int(action.dx * distance_scale)
-        distance_y = int(action.dy * distance_scale)
-        distance_z = int(action.dz * distance_scale)
-        
-        if abs(distance_x) > 20 or abs(distance_y) > 20 or abs(distance_z) > 20:
-            command = None
-            
-            # Handle x movement (left/right)
-            if abs(distance_x) > 20:
-                if distance_x > 0:
-                    command = f"right {abs(distance_x)}"
-                else:
-                    command = f"left {abs(distance_x)}"
-                self.add_command(command)
-            
-            # Handle y movement (forward/backward)
-            if abs(distance_y) > 20:
-                if distance_y > 0:
-                    command = f"forward {abs(distance_y)}"
-                else:
-                    command = f"back {abs(distance_y)}"
-                self.add_command(command)
-            
-            # Handle z movement (up/down)
-            if abs(distance_z) > 20:
-                if distance_z > 0:
-                    command = f"up {abs(distance_z)}"
-                else:
-                    command = f"down {abs(distance_z)}"
-                self.add_command(command)
-                
-            return True
-        else:
-            self.logger.info("Movement too small, skipping")
-            return False
-
-    def _execute_velocity_action(self, action):
-        """Execute action using velocity-based commands"""
-        # Calculate velocities (scale -1 to 1 to -100 to 100)
-        velocity_scale = self.config.get("velocity_scale", 50)
-        command_duration = self.config.get("command_duration", 0.5)
-        
-        # Scale velocities by configured factor
-        lr_velocity = int(action.dx * velocity_scale)  # left/right velocity
-        fb_velocity = int(action.dy * velocity_scale)  # forward/backward velocity
-        ud_velocity = int(action.dz * velocity_scale)  # up/down velocity
-        yaw_velocity = 0  # yaw velocity
-        
-        # Has obstacles, consider adjusting velocity
-        has_obstacles = hasattr(action, 'detected_obstacles') and len(action.detected_obstacles) > 0
-        if has_obstacles:
-            # If obstacles detected, reduce speed for safety
-            lr_velocity = int(lr_velocity * 0.7)
-            fb_velocity = int(fb_velocity * 0.7)
-            ud_velocity = int(ud_velocity * 0.7)
-            self.logger.info(f"Reduced velocity due to obstacles: {lr_velocity}, {fb_velocity}, {ud_velocity}")
-        
-        # Only send command if there's meaningful movement
-        if abs(lr_velocity) > 10 or abs(fb_velocity) > 10 or abs(ud_velocity) > 10:
-            command = f"rc {lr_velocity} {fb_velocity} {ud_velocity} {yaw_velocity}"
-            self.add_command(command)
-            
-            # Schedule stop command after duration
-            stop_time = time.time() + command_duration
-            stop_command = "rc 0 0 0 0"
-            self.add_delayed_command(stop_command, stop_time)
-            return True
-        else:
-            self.logger.info("Movement too small, skipping")
-            return False
-
+        for cmd, duration in commands:
+            if cmd in self.action_map:
+                if not quiet:
+                    print(f"Executing: {cmd} ({duration}ms)")
+                self.execute_action((cmd, duration))
+                time.sleep(duration/1000.0)  # Reduced delay
+    
     def takeoff(self):
         """Takeoff the drone"""
         try:
-            self.drone.takeoff()
+            self.tello.takeoff()
             print("Tello takeoff")
             time.sleep(2)  # Allow drone to stabilize
         except Exception as e:
@@ -712,7 +491,7 @@ class TelloController:
     def land(self):
         """Land the drone"""
         try:
-            self.drone.land()
+            self.tello.land()
             print("Tello landing")
         except Exception as e:
             print(f"Landing error: {e}")
@@ -723,19 +502,19 @@ class TelloController:
         
         # Stop the drone movement
         try:
-            self.drone.send_rc_control(0, 0, 0, 0)
+            self.tello.send_rc_control(0, 0, 0, 0)
         except:
             pass
         
         # Land if still flying
         try:
-            self.drone.land()
+            self.tello.land()
         except:
             pass
             
         # Stop video stream
         try:
-            self.drone.streamoff()
+            self.tello.streamoff()
         except:
             pass
         
@@ -748,7 +527,7 @@ class TelloController:
             self.key_listener.stop()
             
         # Stop keyboard thread
-        if self.command_thread.is_alive():
-            self.command_thread.join(timeout=1.0)
+        if self.control_thread.is_alive():
+            self.control_thread.join(timeout=1.0)
 
         print("TelloController stopped and cleaned up") 

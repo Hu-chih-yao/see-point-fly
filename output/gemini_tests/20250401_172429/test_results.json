@@ -1,0 +1,62 @@
+[
+  {
+    "image": "twoCar.png",
+    "task": "fly to the car nears to a truck",
+    "prompt": "baseline",
+    "point_2d": [
+      1026,
+      1439
+    ],
+    "point_3d": [
+      -0.4679947198422309,
+      0.8500451671183379,
+      -0.35089035001721014
+    ],
+    "processing_time": 2.8227169513702393
+  },
+  {
+    "image": "twoCar.png",
+    "task": "fly to the car nears to a truck",
+    "prompt": "Object-Centric",
+    "point_2d": [
+      1344,
+      1213
+    ],
+    "point_3d": [
+      -0.2804897040991889,
+      0.952122854561879,
+      -0.12548453153311265
+    ],
+    "processing_time": 2.5310590267181396
+  },
+  {
+    "image": "twoCar.png",
+    "task": "fly to the car nears to a truck",
+    "prompt": "Two-Stage",
+    "point_2d": [
+      1371,
+      1137
+    ],
+    "point_3d": [
+      -0.2691643662474221,
+      0.986449864498645,
+      -0.03679489861645457
+    ],
+    "processing_time": 2.512136936187744
+  },
+  {
+    "image": "twoCar.png",
+    "task": "fly to the car nears to a truck",
+    "prompt": "Contextual Awareness",
+    "point_2d": [
+      1381,
+      1095
+    ],
+    "point_3d": [
+      -0.2662479608722657,
+      1.005420054200542,
+      0.015000997128246861
+    ],
+    "processing_time": 2.59826397895813
+  }
+]

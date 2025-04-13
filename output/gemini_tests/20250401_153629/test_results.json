@@ -1,0 +1,32 @@
+[
+  {
+    "image": "oneCar_1.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2223,
+      1217
+    ],
+    "point_3d": [
+      0.39239939846495236,
+      0.950316169828365,
+      -0.12997270048522963
+    ],
+    "processing_time": 2.927263021469116
+  },
+  {
+    "image": "oneCar_2.png",
+    "task": "fly to the car",
+    "prompt": "baseline",
+    "point_2d": [
+      2394,
+      1439
+    ],
+    "point_3d": [
+      0.4679947198422309,
+      0.8500451671183379,
+      -0.35089035001721014
+    ],
+    "processing_time": 2.561499834060669
+  }
+]
