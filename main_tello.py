@@ -209,8 +209,8 @@ def main():
         print("  E: Emergency stop (stop all movement)")
         print("\nAI control will resume when no override keys are pressed")
 
-        print("\nStarting in 3 seconds... Prepare for takeoff!")
-        time.sleep(3)
+        print("\nStarting in 4 seconds... Prepare for takeoff!")
+        time.sleep(5)
         
         # Take off
         tello_controller.takeoff()

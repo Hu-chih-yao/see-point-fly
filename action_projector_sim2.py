@@ -333,7 +333,7 @@ class ActionProjector:
         return actions[chosen_number-1], reason
     '''
     
-    def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 1) -> Tuple[float, float, float]:
+    def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 2) -> Tuple[float, float, float]:
         """Project 2D image point back to 3D space"""
         # Center and normalize coordinates
         x_normalized = (point_2d[0] - self.image_width/2) / (self.image_width/2)
@@ -388,51 +388,27 @@ class ActionProjector:
                         (255, 255, 255),
                         2
                     )
-                    
-                    # Draw obstacles if present
-                    if action.detected_obstacles:
-                        for obstacle in action.detected_obstacles:
-                            if 'bounding_box' in obstacle:
-                                ymin, xmin, ymax, xmax = obstacle['bounding_box']
-                                # Draw rectangle for obstacle
-                                cv2.rectangle(viz_image, 
-                                            (int(xmin), int(ymin)), 
-                                            (int(xmax), int(ymax)),
-                                            (0, 0, 255), 2)  # Red color for obstacles
-                                # Add obstacle label
-                                label = obstacle.get('label', 'obstacle')
-                                cv2.putText(viz_image, label,
-                                        (int(xmin), int(ymin)-10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                                        (0, 0, 255), 2)
                 
                 # Save visualization
                 save_path = f"{self.output_dir}/decision_{timestamp}.jpg"
-                cv2.imwrite(save_path, viz_image)
+                cv2.imwrite(save_path, cv2.cvtColor(viz_image, cv2.COLOR_RGB2BGR))
                 
                 # Save decision data
                 decision_data = {
                     "timestamp": timestamp,
                     "mode": self.mode,
                     "instruction": instruction,
-                    "actions": []
+                    "actions": [
+                        {
+                            "dx": action.dx,
+                            "dy": action.dy,
+                            "dz": action.dz,
+                            "screen_x": action.screen_x,
+                            "screen_y": action.screen_y
+                        }
+                        for action in actions
+                    ]
                 }
-                
-                # Add action and obstacle data
-                for action in actions:
-                    action_data = {
-                        "dx": action.dx,
-                        "dy": action.dy,
-                        "dz": action.dz,
-                        "screen_x": action.screen_x,
-                        "screen_y": action.screen_y
-                    }
-                    
-                    # Add obstacles if present
-                    if action.detected_obstacles:
-                        action_data["obstacles"] = action.detected_obstacles
-                        
-                    decision_data["actions"].append(action_data)
                 
                 with open(f"{self.output_dir}/decision_{timestamp}.json", 'w') as f:
                     json.dump(decision_data, f, indent=2)
@@ -453,30 +429,23 @@ class ActionProjector:
 
             Task: {instruction}
 
-            1. Identify a safe path with 3 waypoints
-            2. Identify any obstacles that should be avoided
-
-            Return in this exact JSON format:
-            {{
-                "waypoints": [
-                    {{"point": [y, x], "label": "waypoint description"}}
-                ],
-                "obstacles": [
-                    {{"bounding_box": [ymin, xmin, ymax, xmax], "label": "obstacle_description"}}
-                ]
-            }}
+            Return 3 waypoints in JSON format to guide the drone:
+            [{{"point": [y, x], "label": "waypoint description"}}]
 
             Important Guidelines:
             - x: 500 represents center of view, higher values = right, lower values = left
             - y: Lower values = higher in image (closer to sky)
-            - Choose waypoints that avoid ANY obstacles
-            - Make sure bounding boxes correctly surround the full obstacle
-            - Path should navigate safely around all obstacles
+            - For flying to a target:
+            1. First point: Slightly up and forward (y: 300-400, x: 500)
+            2. Second point: Align with target horizontally
+            3. Final point: At the target location
 
-            Example waypoints for "fly to building straight ahead while avoiding obstacles":
-            - First point: Slightly up to gain altitude over obstacles
-            - Second point: Position to safely approach the target
-            - Final point: At the target location
+            Example for "fly to building straight ahead":
+            [
+                {{"point": [350, 500], "label": "Take off and move forward"}},
+                {{"point": [400, 500], "label": "Continue straight ahead"}},
+                {{"point": [450, 500], "label": "Arrive at building"}}
+            ]
             """
 
         try:
@@ -503,35 +472,11 @@ class ActionProjector:
             print(response_text)
             
             # Parse JSON response
-            response_data = json.loads(response_text)
+            points_data = json.loads(response_text)
             actions = []
             
-            # Extract obstacles for later use
-            obstacles = []
-            if 'obstacles' in response_data:
-                for obstacle in response_data['obstacles']:
-                    if 'bounding_box' in obstacle:
-                        ymin, xmin, ymax, xmax = obstacle['bounding_box']
-                        # Convert to pixel coordinates if normalized
-                        if max(obstacle['bounding_box']) <= 1000:
-                            xmin = int((xmin / 1000.0) * self.image_width)
-                            ymin = int((ymin / 1000.0) * self.image_height)
-                            xmax = int((xmax / 1000.0) * self.image_width)
-                            ymax = int((ymax / 1000.0) * self.image_height)
-                        obstacle['bounding_box'] = [ymin, xmin, ymax, xmax]
-                    obstacles.append(obstacle)
-            
-            # Process waypoints
-            waypoints = response_data.get('waypoints', [])
-            if not waypoints and 'point' in response_data:
-                # Handle single waypoint format for backward compatibility
-                waypoints = [response_data]
-            
-            for point_info in waypoints:
+            for point_info in points_data:
                 # Convert normalized coordinates to pixel coordinates
-                if 'point' not in point_info:
-                    continue
-                    
                 y, x = point_info['point']
                 pixel_x = int((x / 1000.0) * self.image_width)
                 pixel_y = int((y / 1000.0) * self.image_height)
@@ -546,17 +491,13 @@ class ActionProjector:
                     screen_x=pixel_x,
                     screen_y=pixel_y
                 )
-                
-                # Add obstacles to each waypoint
-                action.detected_obstacles = obstacles.copy()
                 actions.append(action)
                 
-                print(f"\nIdentified point: {point_info.get('label', 'waypoint')}")
+                print(f"\nIdentified point: {point_info['label']}")
                 print(f"2D Normalized: ({x}, {y})")
                 print(f"2D Pixels: ({pixel_x}, {pixel_y})")
                 print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
             
-            print(f"Detected {len(obstacles)} obstacles in the scene")
             return actions
             
         except Exception as e:
@@ -575,12 +516,9 @@ class ActionProjector:
 
             Task: {instruction}
 
-            main task:
-            1. Identify objects in the image that match the description "{instruction}". 
-            2. Then, select the MOST RELEVANT target object and place a "target point" DIRECTLY ON that object.
-            sub task:
-            3. Identify obstacles in the path, if necessary, "slighty" adjust the point to avoid obstacles.
-            
+            1. Point to the SINGLE best next position for the drone to move.
+            2. Identify any obstacles in the path.
+
             Return in this exact JSON format:
             {{
                 "point": [y, x],
@@ -594,21 +532,13 @@ class ActionProjector:
             - x: 0-1000 scale (500=center, >500=right, <500=left)
             - y: 0-1000 scale (lower values=higher in image/sky)
 
-            Notes:
-            - Pointing the "target point" is the most important thing.
-            - Prioritize the clearest/closest matching object if multiple exist
-            - Consider immediate obstacles and choose a safe path.
-            - If the target is a vehicle or structure, aim for its center.
-            """
-        
-        '''
-        Requirements:
+            Requirements:
             - Place the point PRECISELY where the drone should move next
             - Consider immediate obstacles and choose a safe path
             - If the target is a vehicle or structure, aim for its center
             - Identify ALL obstacles that could block the path with accurate bounding boxes
-            - Your accuracy in point placement and obstacle detection is critical for safe navigation
-        '''
+            - Your accuracy in point placement and obstacle detection is critical for safe navigation"""
+        
         try:
             # Get response from Gemini
             response = self.model.generate_content([
