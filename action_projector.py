@@ -508,6 +508,27 @@ class ActionProjector:
             print(response.text)
             return []
 
+    def calculate_adjusted_depth(self, gemini_depth):
+        """
+        Non-linear depth adjustment that makes:
+        - Close objects (1-3) move slower for precision
+        - Far objects (7-10) move faster for efficiency
+        
+        Args:
+            gemini_depth: Depth value from Gemini (1-10 scale)
+            
+        Returns:
+            adjusted_depth: Non-linear scaled depth value
+        """
+        # Base scaling with curve
+        base = (gemini_depth / 10.0)**1.8 * 6.0
+        
+        # Add minimum threshold to prevent too slow movements
+        adjusted_depth = max(0.5, base)
+        
+        print(f"Gemini depth {gemini_depth}/10 → Adjusted depth {adjusted_depth:.2f}")
+        return adjusted_depth
+
     def _get_single_action(self, image: np.ndarray, instruction: str) -> ActionPoint:
         """Get single next best action"""
         _, buffer = cv2.imencode('.jpg', image)
@@ -520,18 +541,21 @@ class ActionProjector:
 
             First, identify ALL objects in the image that match the description "{instruction}". 
             Then, select the MOST RELEVANT target object and place a single point DIRECTLY ON that object.
-
+        
             Return in this exact JSON format:
-            [{{"point": [y, x], "label": "action description"}}]
+            [{{"point": [y, x], "depth": depth_value, "label": "action description"}}]
 
             Coordinate system:
             - x: 0-1000 scale (500=center, >500=right, <500=left)
             - y: 0-1000 scale (lower values=higher in image/sky)
+            - depth: 1-10 scale where:
+                * 1: Object is very close/large in frame
+                * 10: Object is far away/small in frame
 
             IMPORTANT: 
-            - Place the point PRECISELY on the target object, not nearby or in its direction
-            - If the target is a vehicle or structure, aim for its center
-            - Prioritize the clearest/closest matching object if multiple exist
+            - Place the point PRECISELY on the center of the target object
+            - Choose the largest/closest matching object if multiple exist
+            - Assess the depth based on how much of the frame the object occupies
             - Your accuracy in point placement is critical for navigation success"""
         
         try:
@@ -568,9 +592,16 @@ class ActionProjector:
             pixel_x = int((x / 1000.0) * self.image_width)
             pixel_y = int((y / 1000.0) * self.image_height)
             
-            # Project 2D point to 3D
-            x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y))
+            # Get depth from Gemini's response (default to 4 if not provided)
+            gemini_depth = point_info.get('depth', 4)  # Default to middle range if not specified
             
+            # Use the new non-linear depth adjustment
+            adjusted_depth = self.calculate_adjusted_depth(gemini_depth)
+            
+            # Project 2D point to 3D with custom depth
+            x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y), depth=adjusted_depth)
+            
+
             # Create ActionPoint
             action = ActionPoint(
                 dx=x3d, dy=y3d, dz=z3d,
@@ -582,6 +613,7 @@ class ActionProjector:
             print(f"\nIdentified single action: {point_info['label']}")
             print(f"2D Normalized: ({x}, {y})")
             print(f"2D Pixels: ({pixel_x}, {pixel_y})")
+            print(f"Depth estimation: {gemini_depth}/10 (adjusted to {adjusted_depth:.2f})")
             print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
             
             return action
