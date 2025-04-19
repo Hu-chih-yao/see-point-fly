@@ -18,6 +18,8 @@ See LICENSE file for details.
 - Direct Tello drone control via djitellopy
 - Real-time camera feed processing from Tello
 - AI-powered decision making using Google Gemini
+- Advanced depth estimation for intelligent navigation
+- Adaptive movement speed based on target distance
 - Keyboard manual override system
 - Multi-threaded action execution
 - Command queue system
@@ -29,8 +31,6 @@ See LICENSE file for details.
 - Google Gemini API key
 - DJI Tello drone
 - Good Wi-Fi connection to the Tello
-## Prerequisites
-
 
 ## Installation
 
@@ -47,7 +47,7 @@ GEMINI_API_KEY=your_api_key_here
 
 ## Configuration
 
-The system can be configured using `config.yaml`:
+The system can be configured using `config_tello.yaml`:
 
 ```yaml
 mode: "single"  # or "waypoint"
@@ -55,8 +55,23 @@ command_loop_delay: 0  # seconds between actions
 ```
 
 - **Mode**:
-  - `single`: Generates one action at a time
+  - `single`: Generates one action at a time with intelligent depth estimation
   - `waypoint`: Generates a sequence of waypoints for more complex navigation
+
+## Navigation Intelligence
+
+The system uses several advanced techniques to navigate effectively:
+
+1. **Dynamic Depth Estimation**: 
+   - Gemini Vision analyzes the scene to estimate target distance on a 1-10 scale
+   - Close objects (occupying large portions of the frame) receive lower depth values
+   - Distant objects (appearing small in frame) receive higher depth values
+
+2. **Adaptive Movement Speed**:
+   - Non-linear depth scaling adjusts movement speed based on target distance
+   - Precision movements for close objects (slow, careful approach)
+   - Efficient movements for distant objects (faster approach)
+   - Prevents overshooting or collisions with nearby objects
 
 ## Usage
 
