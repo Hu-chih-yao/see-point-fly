@@ -77,7 +77,6 @@ def main():
             
         # Load test image
         test_image = cv2.imread(test_image_path)
-        test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2RGB)
         
         # Create controller
         controller = DroneController()

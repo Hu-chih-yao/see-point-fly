@@ -205,7 +205,7 @@ class DroneController:
         # Save image
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         image_path = os.path.join(self.data_dir, f"frame_{timestamp}.jpg")
-        cv2.imwrite(image_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(image_path, frame)
         
         # Store sample data
         sample = {
@@ -292,7 +292,6 @@ def capture_screen(monitor_index=1):
             monitor = sct.monitors[monitor_index]
             screenshot = sct.grab(monitor)
             img = np.array(screenshot)
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
             
             # Print monitor dimensions every 100 captures (commented out by default)
             # import random

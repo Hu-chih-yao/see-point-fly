@@ -165,7 +165,7 @@ class ActionProjector:
                     start_point=center_point)
                 cv2.imwrite(
                     f"{self.output_dir}/action_{len(valid_actions)+1}.jpg", 
-                    cv2.cvtColor(action_viz, cv2.COLOR_RGB2BGR)
+                    action_viz
                 )
                 
                 # Add to main visualization
@@ -189,7 +189,7 @@ class ActionProjector:
             attempts += 1
         
         # Save final visualization
-        cv2.imwrite(f"{self.output_dir}/final_visualization.jpg", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(f"{self.output_dir}/final_visualization.jpg", annotated_image)
         
         # Save action data as text
         self._save_action_data(valid_actions)
@@ -408,7 +408,7 @@ class ActionProjector:
                 
                 # Save visualization
                 save_path = f"{self.output_dir}/decision_{timestamp}.jpg"
-                cv2.imwrite(save_path, cv2.cvtColor(viz_image, cv2.COLOR_RGB2BGR))
+                cv2.imwrite(save_path, viz_image)
                 #cv2.imwrite(save_path, viz_image)
                 
                 # Save decision data
@@ -731,7 +731,7 @@ class ActionProjector:
         )
         
         # Save and display
-        cv2.imwrite(f"{self.output_dir}/single_action_2d.jpg", cv2.cvtColor(viz_image, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(f"{self.output_dir}/single_action_2d.jpg", viz_image)
         
         # Create simple 3D visualization
         fig = plt.figure(figsize=(10, 10))
