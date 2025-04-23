@@ -125,6 +125,13 @@ class TelloController:
         self.key_listener.daemon = True
         self.key_listener.start()
         
+        # Initialize video recording attributes
+        self.video_writer = None
+        self.is_recording = False
+        self.recording_thread = None
+        self.video_dir = "video_records"
+        os.makedirs(self.video_dir, exist_ok=True)
+        
         # Map abstract actions to Tello RC control parameters (left_right, forward_backward, up_down, yaw)
         # Format: (left_right, forward_backward, up_down, yaw)
         self.action_map = {
@@ -153,7 +160,8 @@ class TelloController:
             's': ('decrease_throttle', self.default_speed),        # Down with S
             'l': ('land', self.default_speed),                      # Land with L
             't': ('takeoff', self.default_speed),                   # Takeoff with T
-            'e': (None, self.default_speed)                         # Emergency stop with E
+            'e': (None, self.default_speed),                         # Emergency stop with E
+            'r': ('toggle_recording', self.default_speed)          # Toggle recording with R
         }
         
         # Opposite actions for oscillation prevention
@@ -336,6 +344,17 @@ class TelloController:
                 elif cmd == 'takeoff':
                     print("MANUAL OVERRIDE: Taking off")
                     self.tello.takeoff()
+                elif cmd == 'toggle_recording':
+                    # Toggle recording state
+                    if self.is_recording:
+                        print("MANUAL OVERRIDE: Stopping recording")
+                        self.stop_recording()
+                    else:
+                        print("MANUAL OVERRIDE: Starting recording")
+                        self.start_recording()
+                    # Reset manual control immediately for recording toggle
+                    self.manual_control_active = False
+                    self.manual_key_pressed = None
                 else:
                     print(f"MANUAL OVERRIDE: {cmd}")
                     lr, fb, ud, yaw = self.action_map.get(cmd, (0, 0, 0, 0))
@@ -369,8 +388,8 @@ class TelloController:
                 # Get the command associated with this key
                 cmd, _ = self.manual_control_map[matched_key]
                 
-                # For land and takeoff, we don't need to stop any movement
-                if cmd not in ['land', 'takeoff']:
+                # For land, takeoff, and toggle_recording, we don't need to stop any movement
+                if cmd not in ['land', 'takeoff', 'toggle_recording']:
                     # Stop the movement (only if it's not a one-time action)
                     self.tello.send_rc_control(0, 0, 0, 0)
                 
@@ -496,9 +515,81 @@ class TelloController:
         except Exception as e:
             print(f"Landing error: {e}")
     
+    def start_recording(self, resolution=(960, 720)):
+        """Start recording video from Tello camera"""
+        if self.is_recording:
+            print("Already recording")
+            return
+            
+        # Create timestamped filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{self.video_dir}/tello_video_{timestamp}.mp4"
+        
+        # Define codec and create VideoWriter
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        self.video_writer = cv2.VideoWriter(
+            filename, fourcc, 30.0, resolution)
+            
+        self.is_recording = True
+        print(f"Started recording to {filename}")
+        
+        # Start recording thread
+        self.recording_thread = threading.Thread(target=self._record_thread)
+        self.recording_thread.daemon = True
+        self.recording_thread.start()
+    
+    def stop_recording(self):
+        """Stop video recording"""
+        if not self.is_recording:
+            print("Not recording")
+            return
+            
+        self.is_recording = False
+        
+        # Wait for recording thread to finish
+        if self.recording_thread:
+            self.recording_thread.join(timeout=2.0)
+            
+        # Release VideoWriter
+        if self.video_writer:
+            self.video_writer.release()
+            self.video_writer = None
+            
+        print("Recording stopped")
+    
+    def _record_thread(self):
+        """Background thread for video recording"""
+        while self.is_recording and self.video_writer:
+            try:
+                # Get the latest frame
+                frame = self.frame_provider.get_frame()
+                
+                # Convert RGB to BGR for OpenCV
+                frame_bgr = frame
+                #frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                
+                # Write frame to video
+                self.video_writer.write(frame_bgr)
+                
+                # Don't use 100% CPU
+                time.sleep(0.01)
+                
+            except Exception as e:
+                print(f"Error in recording thread: {e}")
+                break
+        
+        # Ensure VideoWriter is released
+        if self.video_writer:
+            self.video_writer.release()
+            self.video_writer = None
+    
     def stop(self):
         """Stop the drone and cleanup"""
         self.running = False
+        
+        # Stop recording if active
+        if self.is_recording:
+            self.stop_recording()
         
         # Stop the drone movement
         try:

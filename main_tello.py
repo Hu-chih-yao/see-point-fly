@@ -124,6 +124,7 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug mode with additional logging')
     parser.add_argument('--test', action='store_true', help='Use test mode with static images instead of live feed')
     parser.add_argument('--skip-camera-check', action='store_true', help='Skip camera initialization check')
+    parser.add_argument('--record', action='store_true', help='Start video recording on launch')
     args = parser.parse_args()
     
     # Print welcome banner
@@ -207,6 +208,7 @@ def main():
         print("  T: Takeoff")
         print("  L: Land")
         print("  E: Emergency stop (stop all movement)")
+        print("  R: Start/stop video recording")
         print("\nAI control will resume when no override keys are pressed")
 
         print("\nStarting in 4 seconds... Prepare for takeoff!")
@@ -214,6 +216,11 @@ def main():
         
         # Take off
         tello_controller.takeoff()
+        
+        # Start recording if requested
+        if args.record:
+            tello_controller.start_recording()
+            print("Video recording started automatically")
         
         # Create directory for storing frames sent to Gemini
         gemini_frames_dir = "Tello_frame_capture"
