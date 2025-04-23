@@ -335,7 +335,7 @@ class ActionProjector:
     def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 2) -> Tuple[float, float, float]:
         """Project 2D image point back to 3D space"""
         # Set reference point at 20% from top of frame
-        reference_y = self.image_height * 0.2
+        reference_y = self.image_height * 0.35
 
         # Center and normalize coordinates
         x_normalized = (point_2d[0] - self.image_width/2) / (self.image_width/2)
