@@ -1,0 +1,18 @@
+[project]
+name = "see-point-fly"
+version = "0.1.0"
+description = "See, Point, Fly: A Learning-Free VLM Framework for Universal Unmanned Aerial Navigation"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "djitellopy>=2.5.0",
+    "google-generativeai>=0.8.5",
+    "matplotlib>=3.10.6",
+    "mss>=10.1.0",
+    "numpy>=2.3.2",
+    "opencv-python>=4.11.0.86",
+    "pillow>=11.3.0",
+    "pynput>=1.8.1",
+    "python-dotenv>=1.1.1",
+    "pyyaml>=6.0.2",
+]
