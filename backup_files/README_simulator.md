@@ -24,7 +24,8 @@ See LICENSE file for details.
 
 ## Prerequisites
 
-- Python 3.8+
+- uv
+- Python 3.13+
 - Google Gemini API key
 - [The Drone Racing League Simulator](https://store.steampowered.com/app/641780/The_Drone_Racing_League_Simulator/) (available on Steam)
 
@@ -38,9 +39,9 @@ See LICENSE file for details.
 
 ## Installation
 
-1. Install dependencies:
+1. Install dependencies and create Python virtual environment:
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 2. Configure your environment:

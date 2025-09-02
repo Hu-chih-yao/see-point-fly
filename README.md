@@ -27,16 +27,17 @@ See LICENSE file for details.
 
 ## Prerequisites
 
-- Python 3.8+
+- uv
+- Python 3.13+
 - Google Gemini API key
 - DJI Tello drone
 - Good Wi-Fi connection to the Tello
 
 ## Installation
 
-1. Install dependencies:
+1. Install dependencies and create Python virtual environment:
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 2. Configure your environment:
@@ -62,7 +63,7 @@ command_loop_delay: 0  # seconds between actions
 
 The system uses several advanced techniques to navigate effectively:
 
-1. **Dynamic Depth Estimation**: 
+1. **Dynamic Depth Estimation**:
    - Gemini Vision analyzes the scene to estimate target distance on a 1-10 scale
    - Close objects (occupying large portions of the frame) receive lower depth values
    - Distant objects (appearing small in frame) receive higher depth values
@@ -158,4 +159,4 @@ AI control will automatically resume when you release all keys.
 
 - If the Tello doesn't respond to commands, check battery level
 - Ensure there's no interference from other nearby Wi-Fi networks
-- Calibrate the Tello using the official Tello app if movement seems inconsistent 
+- Calibrate the Tello using the official Tello app if movement seems inconsistent
