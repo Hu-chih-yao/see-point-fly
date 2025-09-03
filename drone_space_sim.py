@@ -115,28 +115,5 @@ class DroneActionSpace:
             'duration': duration_ms
         }
 
-def test_action_space():
-    """Test the action space implementation"""
-    action_space = DroneActionSpace(n_samples=8)
-    
-    # Sample some actions
-    print("\nSampled relative movements:")
-    actions = action_space.sample_actions()
-    for i, action in enumerate(actions, 1):
-        print(f"\nAction {i}:")
-        print(f"  {action}")
-        commands = action_space.action_to_commands(action)
-        print("  Converts to commands:")
-        for cmd, duration in commands:
-            print(f"    {cmd}: {duration}ms")
-
-    # Test a specific movement
-    print("\nTesting specific movement (1,1,1):")
-    test_action = ActionPoint(1.0, 1.0, 1.0, "move")
-    commands = action_space.action_to_commands(test_action)
-    print(f"Movement {test_action} converts to:")
-    for cmd, duration in commands:
-        print(f"  {cmd}: {duration}ms")
-
 if __name__ == "__main__":
     test_action_space() 

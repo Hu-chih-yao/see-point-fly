@@ -158,17 +158,17 @@ class DroneController:
             if not actions:
                 return "No valid actions identified"
             
-            # Execute waypoints sequentially
-            response_text = "Executing waypoint sequence:\n"
+            # Execute single action
+            response_text = "Executing single action:\n"
             
             for i, action in enumerate(actions, 1):
-                response_text += f"\n=== Waypoint {i}/{len(actions)} ===\n"
+                response_text += f"\n=== Action {i}/{len(actions)} ===\n"
                 response_text += f"Target: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})\n"
                 
                 # Convert 3D action to drone commands
                 commands = self.action_space.action_to_commands(action)
                 
-                # Execute commands for this waypoint
+                # Execute commands for this action
                 for cmd, duration in commands:
                     if cmd in self.action_map:
                         print(f"Executing {cmd} for {duration}ms")
@@ -177,12 +177,12 @@ class DroneController:
                     else:
                         print(f"Warning: Invalid command {cmd}")
                 
-                # Add small delay between waypoints
-                time.sleep(0.2)  # 200ms pause between waypoints
+                # Add small delay between actions
+                time.sleep(0.2)  # 200ms pause between actions
                 
-                # Optionally check if waypoint reached before continuing
+                # Check if action completed
                 if i < len(actions):
-                    response_text += "Waypoint reached, moving to next...\n"
+                    response_text += "Action completed, moving to next...\n"
             
             return response_text
             
@@ -217,41 +217,23 @@ class DroneController:
         }
         self.current_episode.append(sample)
     
-    def save_episode(self):
-        """Save the current episode to disk"""
-        if not self.current_episode:
-            return
-            
-        episode_path = os.path.join(self.data_dir, f"episode_{self.episode_count}.json")
-        with open(episode_path, 'w') as f:
-            json.dump(self.current_episode, f, indent=2)
-            
-        self.current_episode = []
-        self.episode_count += 1
-
-    def process_spatial_command(self, current_frame, instruction: str, mode: str = "waypoint"):
+    def process_spatial_command(self, current_frame, instruction: str):
         """Process command using spatial understanding system"""
         try:
-            # Set mode and get actions
-            self.action_projector.set_mode(mode)
+            # Set single mode and get action
+            self.action_projector.set_mode("single")
             actions = self.action_projector.get_gemini_points(current_frame, instruction)
             
             if not actions:
                 return "No valid actions identified"
             
-            response_text = f"\n=== {mode.upper()} MODE ===\n"
+            response_text = f"\n=== SINGLE ACTION MODE ===\n"
             
-            if mode == "waypoint":
-                for i, action in enumerate(actions, 1):
-                    response_text += f"\nWaypoint {i}/{len(actions)}:"
-                    response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
-                    self._execute_spatial_action(action, quiet=True)
-            else:
-                action = actions[0]
-                if action is None:
-                    return "No valid action"
-                response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
-                self._execute_spatial_action(action, quiet=True)
+            action = actions[0]
+            if action is None:
+                return "No valid action"
+            response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
+            self._execute_spatial_action(action, quiet=True)
             
             return response_text
             
@@ -306,41 +288,6 @@ def capture_screen(monitor_index=1):
         cv2.putText(blank, "Screen capture error", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
         return blank
 
-def collect_training_data():
-    drone_controller = DroneController()
-    
-    try:
-        for episode_type in EXAMPLE_EPISODES:
-            print(f"\nCollecting data for: {episode_type['task']}")
-            
-            for variation in range(episode_type['variations']):
-                print(f"\nVariation {variation + 1}/{episode_type['variations']}")
-                
-                for instruction in episode_type['instructions']:
-                    print(f"\nInstruction: {instruction}")
-                    drone_controller.current_command = instruction
-                    
-                    while True:
-                        # Execute actions until instruction complete
-                        frame = capture_screen()
-                        response = drone_controller.process_drone_command(frame, instruction)
-                        
-                        complete = input("Instruction complete? (y/n): ")
-                        if complete.lower() == 'y':
-                            drone_controller.save_episode()
-                            break
-                        
-                        time.sleep(0.1)  # Control loop rate
-                
-                # Reset drone position for next variation
-                input("Reset drone position and press Enter to continue...")
-                
-    except KeyboardInterrupt:
-        print("\nData collection interrupted")
-    finally:
-        drone_controller.save_episode()
-        drone_controller.stop()
-
 def main():
     """Main control loop"""
     # Load config
@@ -379,40 +326,6 @@ def main():
     finally:
         drone_controller.stop()
 
-def test_controller():
-    """Test the drone controller with spatial understanding"""
-    try:
-        # Initialize controller
-        controller = DroneController()
-        
-        # Load test image
-        image = cv2.imread('frame_1733321874.11946.jpg')
-        if image is None:
-            raise ValueError("Could not load test image")
-            
-        instruction = "navigate through the center of the crane structure while avoiding obstacles"
-        
-        # Test single action mode
-        print("\n=== Testing Single Action Mode ===")
-        response = controller.process_spatial_command(image, instruction, mode="single")
-        print(response)
-        
-        # Test waypoint mode
-        print("\n=== Testing Waypoint Mode ===")
-        response = controller.process_spatial_command(image, instruction, mode="waypoint")
-        print(response)
-        
-    except KeyboardInterrupt:
-        print("\nCaught Ctrl+C, exiting...")
-    except Exception as e:
-        print(f"\nError: {e}")
-        import traceback
-        traceback.print_exc()
-    finally:
-        if 'controller' in locals():
-            controller.stop()
-
 if __name__ == "__main__":
     print("Starting in 3 seconds... Switch to simulator window!")
     time.sleep(3)
-    main()

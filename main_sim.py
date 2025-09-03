@@ -12,6 +12,7 @@ import numpy as np
 import threading
 import queue
 import argparse
+import mss
 from drone_controller_sim import DroneController, capture_screen, print_monitor_info
 from action_projector_sim import ActionProjector
 
@@ -85,7 +86,7 @@ def main():
         instruction = "navigate through the crane structure safely"
         
         # Process with test image
-        response = controller.process_spatial_command(test_image, instruction, mode="waypoint")
+        response = controller.process_spatial_command(test_image, instruction)
         print(f"\nAction Response:\n{response}\n")
         
         return 0
@@ -100,11 +101,11 @@ def main():
         import yaml
         with open('config_sim.yaml', 'r') as f:
             config = yaml.safe_load(f)
-            print(f"Mode: {config['mode']}")
+            print(f"Command loop delay: {config.get('command_loop_delay', 0)}s")
     except Exception as e:
         print(f"Error loading config: {e}")
-        print("Using default configuration (single mode)")
-        config = {'mode': 'single', 'command_loop_delay': 0}
+        print("Using default configuration")
+        config = {'command_loop_delay': 0}
     
     # Create controller
     drone_controller = DroneController()
@@ -138,8 +139,7 @@ def main():
             # Process command
             response = drone_controller.process_spatial_command(
                 frame, 
-                current_command, 
-                mode=config['mode']
+                current_command
             )
             print(f"\nAction Response:\n{response}\n")
             
