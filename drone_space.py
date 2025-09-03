@@ -12,6 +12,7 @@ class ActionPoint:
     action_type: str
     screen_x: float = 0.0  # 2D projected coordinates for visualization
     screen_y: float = 0.0
+    detected_obstacles: list = None  # Store detected obstacles (obstacle_mode only)
     
     def __str__(self):
         return f"Action({self.action_type}): Move({self.dx:.1f}, {self.dy:.1f}, {self.dz:.1f})"
@@ -97,4 +98,4 @@ class DroneActionSpace:
         }
 
 if __name__ == "__main__":
-    test_action_space() 
+    print("DroneActionSpace module - import this module to use DroneActionSpace class") 

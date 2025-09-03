@@ -135,11 +135,14 @@ def main():
     try:
         with open('config_tello.yaml', 'r') as f:
             config = yaml.safe_load(f)
-            print(f"Mode: {config['mode']}")
+            operational_mode = config.get('operational_mode', 'adaptive_mode')
+            print(f"Operational Mode: {operational_mode}")
+            print(f"Command loop delay: {config.get('command_loop_delay', 0)}s")
     except Exception as e:
         print(f"Error loading config: {e}")
-        print("Using default configuration (single mode)")
-        config = {'mode': 'single', 'command_loop_delay': 0}
+        print("Using default configuration (adaptive_mode)")
+        config = {'operational_mode': 'adaptive_mode', 'command_loop_delay': 0}
+        operational_mode = 'adaptive_mode'
     
     # Test mode (using static image)
     if args.test:
@@ -154,23 +157,23 @@ def main():
         test_image = cv2.imread(test_image_path)
         test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2RGB)
         
-        # Create controller
-        controller = TelloController()
+        # Create controller with operational mode
+        controller = TelloController(mode=operational_mode)
         
         # Test instruction
         instruction = "navigate forward and slightly to the right to avoid obstacles"
         
         # Process with test image
-        response = controller.process_spatial_command(test_image, instruction, mode="waypoint")
+        response = controller.process_spatial_command(test_image, instruction, mode="single")
         print(f"\nAction Response:\n{response}\n")
         
         controller.stop()
         return 0
     
-    # Create controller
+    # Create controller with operational mode
     try:
-        print("\nConnecting to Tello drone...")
-        tello_controller = TelloController()
+        print(f"\\nConnecting to Tello drone in {operational_mode}...")
+        tello_controller = TelloController(mode=operational_mode)
     except Exception as e:
         print(f"Failed to connect to Tello: {e}")
         return 1
@@ -200,7 +203,8 @@ def main():
         if args.record:
             session_name = args.record_session if args.record_session else "flight"
             tello_controller.start_frame_recording(session_name)
-            print(f"Started continuous frame recording at 10fps with session name: {session_name}")
+            fps = "10fps" if operational_mode == "obstacle_mode" else "3fps"
+            print(f"[RECORDER] Started continuous frame recording at {fps} with session name: {session_name}")
         
         # Get initial command from user
         current_command = input("\nEnter high-level command (e.g., 'navigate through the center of the room'): ")
@@ -230,56 +234,128 @@ def main():
         # Initialize frame counter
         frame_count = 0
         
+        # Initialize error handling and timeout (obstacle_mode specific)
+        if operational_mode == "obstacle_mode":
+            api_timeout = 120  # 2 minutes max for the entire processing
+            consecutive_errors = 0
+            max_consecutive_errors = 3
+        else:
+            consecutive_errors = 0
+            max_consecutive_errors = 5  # More tolerant for adaptive_mode
+        
         while True:
-            # Capture current view from Tello camera - now always fresh thanks to RealtimeFrameProvider
-            frame = tello_controller.capture_frame()
-            
-            if frame is None:
-                print("Error: Failed to capture frame")
-                time.sleep(1)
-                continue
-            
-            # Display frame if debug is enabled
-            if args.debug:
-                cv2.imshow("Tello View", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-                cv2.waitKey(1)
-            
-            # Check if manual control is active
-            if tello_controller.is_manual_control_active():
-                # Skip AI processing during manual control
-                if args.debug:
-                    print("Manual control active, skipping AI processing")
-                time.sleep(0.1)  # Small delay to prevent CPU spin
-                continue
-            
-            # Wait for previous actions to complete before processing new frame
-            if args.debug:
-                print("Waiting for previous actions to complete...")
-                tello_controller.wait_for_queue_empty(debug=True)
-                print("Action queue empty, processing new frame...")
-            else:
-                tello_controller.wait_for_queue_empty()
-            
-            # Save the frame that will be sent to Gemini
-            frame_count += 1
-            frame_path = save_frame_to_directory(
-                frame, 
-                gemini_frames_dir, 
-                prefix=f"gemini_frame_{frame_count}"
-            )
-            if frame_path:
-                print(f"Saved frame to Gemini: {os.path.basename(frame_path)}")
+            try:
+                # Check if manual control is active
+                if tello_controller.is_manual_control_active():
+                    # Skip AI processing during manual control
+                    if args.debug:
+                        print("Manual control active, skipping AI processing")
+                    time.sleep(0.1)  # Small delay to prevent CPU spin
+                    continue
                 
-            # Process command
-            response = tello_controller.process_spatial_command(
-                frame, 
-                current_command, 
-                mode=config['mode']
-            )
-            print(f"\nAction Response:\n{response}\n")
+                # Wait for previous actions to complete before processing new frame
+                if args.debug:
+                    print("Waiting for previous actions to complete...")
+                    tello_controller.wait_for_queue_empty(debug=True)
+                    print("Action queue empty, processing new frame...")
+                else:
+                    tello_controller.wait_for_queue_empty()
+                
+                # Capture current view from Tello camera
+                frame = tello_controller.capture_frame()
+                
+                if frame is None:
+                    print("Error: Failed to capture frame")
+                    time.sleep(1)
+                    consecutive_errors += 1
+                    if consecutive_errors >= max_consecutive_errors:
+                        print(f"Error: {max_consecutive_errors} consecutive frame capture failures. Landing for safety.")
+                        tello_controller.land()
+                        break
+                    continue
+                
+                # Reset consecutive errors counter
+                consecutive_errors = 0
+
+                # Save the frame that will be sent to Gemini
+                frame_count += 1
+                frame_path = save_frame_to_directory(
+                    frame, 
+                    gemini_frames_dir, 
+                    prefix=f"gemini_frame_{frame_count}"
+                )
+                if frame_path:
+                    print(f"Saved frame to Gemini: {os.path.basename(frame_path)}")
+                    
+                # Mode-specific processing
+                if operational_mode == "obstacle_mode":
+                    # Enhanced timeout protection for obstacle_mode
+                    print(f"[TIMEOUT] Starting command processing with {api_timeout}s timeout")
+                    start_time = time.time()
+                    
+                    # Create a thread for processing to allow timeout
+                    result_queue = queue.Queue()
+                    def process_with_timeout():
+                        try:
+                            result = tello_controller.process_spatial_command(
+                                frame, 
+                                current_command, 
+                                mode="single"
+                            )
+                            result_queue.put(("success", result))
+                        except Exception as e:
+                            result_queue.put(("error", str(e)))
+                    
+                    # Start processing thread
+                    process_thread = threading.Thread(target=process_with_timeout)
+                    process_thread.daemon = True
+                    process_thread.start()
+                    
+                    # Wait for result with timeout
+                    try:
+                        status, response = result_queue.get(timeout=api_timeout)
+                        if status == "success":
+                            print(f"\\nAction Response:\\n{response}\\n")
+                            # Reset error counter on success
+                            consecutive_errors = 0
+                        else:
+                            print(f"\\nError in processing: {response}")
+                            consecutive_errors += 1
+                    except queue.Empty:
+                        # Timeout occurred
+                        elapsed = time.time() - start_time
+                        print(f"[TIMEOUT] Command processing timed out after {elapsed:.1f} seconds")
+                        consecutive_errors += 1
+                    
+                    # Check if we've had too many errors
+                    if consecutive_errors >= max_consecutive_errors:
+                        print(f"Warning: {consecutive_errors} consecutive errors. Landing for safety.")
+                        tello_controller.land()
+                        break
+                else:
+                    # Adaptive mode - standard processing
+                    response = tello_controller.process_spatial_command(
+                        frame, 
+                        current_command, 
+                        mode="single"
+                    )
+                    print(f"\\nAction Response:\\n{response}\\n")
+                
+                # Add delay between actions
+                time.sleep(config['command_loop_delay'])
             
-            # Add delay between actions
-            time.sleep(config['command_loop_delay'])
+            except KeyboardInterrupt:
+                print("\\nInterrupted by user")
+                break
+            except Exception as e:
+                print(f"\\nError in main loop: {e}")
+                import traceback
+                traceback.print_exc()
+                consecutive_errors += 1
+                if consecutive_errors >= max_consecutive_errors:
+                    print(f"Error: {max_consecutive_errors} consecutive failures. Landing for safety.")
+                    tello_controller.land()
+                    break
     
     except KeyboardInterrupt:
         print("\nInterrupted by user")

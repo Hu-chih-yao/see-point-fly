@@ -21,7 +21,8 @@ class ActionProjector:
                  image_width=960,
                  image_height=720,
                  camera_matrix=None,
-                 dist_coeffs=None):
+                 dist_coeffs=None,
+                 mode="adaptive_mode"):
         """
         Initialize the projector with image dimensions and optional camera parameters
         
@@ -47,14 +48,24 @@ class ActionProjector:
         # Initialize action space
         self.action_space = DroneActionSpace(n_samples=8)
         
-        # Initialize Gemini
+        # Store operational mode
+        self.operational_mode = mode
+        
+        # Initialize Gemini with mode-specific model
         load_dotenv()
         api_key = os.getenv('GEMINI_API_KEY')
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
         genai.configure(api_key=api_key)
+        
+        # Select model based on mode
+        if mode == "obstacle_mode":
+            model_name = "gemini-2.5-pro-preview-03-25"
+        else:
+            model_name = "gemini-2.0-flash"
+            
         self.model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
+            model_name=model_name,
             generation_config={
                 "temperature": 0.4,
                 "top_p": 0.95,
@@ -62,14 +73,15 @@ class ActionProjector:
                 "max_output_tokens": 8192,
             }
         )
+        print(f"[ACTIONPROJECTOR] Initialized in {mode} with {model_name}")
         
         # Initialize timestamp and output directory
         self.timestamp = time.strftime("%Y%m%d_%H%M%S")
         self.output_dir = f"action_visualizations/{self.timestamp}"
         os.makedirs(self.output_dir, exist_ok=True)
         
-        # Add mode flag
-        self.mode = "waypoint"  # or "single"
+        # Single action mode only
+        self.mode = "single"
 
     def project_point(self, point_3d: Tuple[float, float, float]) -> Tuple[int, int]:
         """Project 3D point using proper perspective projection for drone view"""
@@ -130,23 +142,27 @@ class ActionProjector:
         return (x, y, z)
 
     def set_mode(self, mode: str):
-        """Set operation mode: 'waypoint' or 'single'"""
-        if mode not in ["waypoint", "single"]:
-            raise ValueError("Mode must be 'waypoint' or 'single'")
+        """Set operation mode: only 'single' supported"""
+        if mode != "single":
+            raise ValueError("Only 'single' mode is supported")
         self.mode = mode
 
-    def get_gemini_points(self, image: np.ndarray, instruction: str) -> List[ActionPoint]:
+    def get_gemini_points(self, image: np.ndarray, instruction: str, tello_controller=None) -> List[ActionPoint]:
         """Use Gemini to identify points based on current mode"""
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         
         try:
-            # Get points from Gemini
-            if self.mode == "waypoint":
-                actions = self._get_waypoint_path(image, instruction)
+            # Get single action from Gemini with mode-specific processing
+            if self.operational_mode == "obstacle_mode":
+                print("\\nin obstacle mode")
+                actions = [self._get_single_action(image, instruction, tello_controller)]
             else:
                 actions = [self._get_single_action(image, instruction)]
             
             if actions:
+                print("\\n actions in visualization part:")
+                print("/n", actions)
+
                 # Save visualization
                 viz_image = image.copy()
                 
@@ -167,6 +183,24 @@ class ActionProjector:
                         (255, 255, 255),
                         2
                     )
+                    
+                    # Draw obstacles if present (obstacle_mode only)
+                    if (self.operational_mode == "obstacle_mode" and 
+                        hasattr(action, 'detected_obstacles') and action.detected_obstacles):
+                        for obstacle in action.detected_obstacles:
+                            if 'bounding_box' in obstacle:
+                                ymin, xmin, ymax, xmax = obstacle['bounding_box']
+                                # Draw rectangle for obstacle
+                                cv2.rectangle(viz_image, 
+                                            (int(xmin), int(ymin)), 
+                                            (int(xmax), int(ymax)),
+                                            (0, 0, 255), 2)  # Red color for obstacles
+                                # Add obstacle label
+                                label = obstacle.get('label', 'obstacle')
+                                cv2.putText(viz_image, label,
+                                        (int(xmin), int(ymin)-10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                                        (0, 0, 255), 2)
                 
                 # Save visualization
                 save_path = f"{self.output_dir}/decision_{timestamp}.jpg"
@@ -175,19 +209,27 @@ class ActionProjector:
                 # Save decision data
                 decision_data = {
                     "timestamp": timestamp,
-                    "mode": self.mode,
+                    "mode": self.operational_mode,
                     "instruction": instruction,
-                    "actions": [
-                        {
+                    "actions": []
+                }
+                
+                # Add action and obstacle data
+                for action in actions:
+                    action_data = {
                             "dx": action.dx,
                             "dy": action.dy,
                             "dz": action.dz,
                             "screen_x": action.screen_x,
                             "screen_y": action.screen_y
                         }
-                        for action in actions
-                    ]
-                }
+                    
+                    # Add obstacles if present (obstacle_mode only)
+                    if (self.operational_mode == "obstacle_mode" and 
+                        hasattr(action, 'detected_obstacles') and action.detected_obstacles):
+                        action_data["obstacles"] = action.detected_obstacles
+                        
+                    decision_data["actions"].append(action_data)
                 
                 with open(f"{self.output_dir}/decision_{timestamp}.json", 'w') as f:
                     json.dump(decision_data, f, indent=2)
@@ -198,92 +240,7 @@ class ActionProjector:
             print(f"Error getting points: {e}")
             return []
 
-    def _get_waypoint_path(self, image: np.ndarray, instruction: str) -> List[ActionPoint]:
-        """Get sequence of waypoints for path planning"""
-        # Convert image to base64
-        _, buffer = cv2.imencode('.jpg', image)
-        encoded_image = base64.b64encode(buffer).decode('utf-8')
-        
-        prompt = f"""You are a drone navigation expert. Looking at this drone camera view:
 
-            Task: {instruction}
-
-            Return 3 waypoints in JSON format to guide the drone:
-            [{{"point": [y, x], "label": "waypoint description"}}]
-
-            Important Guidelines:
-            - x: 500 represents center of view, higher values = right, lower values = left
-            - y: Lower values = higher in image (closer to sky)
-            - For flying to a target:
-            1. First point: Slightly up and forward (y: 300-400, x: 500)
-            2. Second point: Align with target horizontally
-            3. Final point: At the target location
-
-            Example for "fly to building straight ahead":
-            [
-                {{"point": [350, 500], "label": "Take off and move forward"}},
-                {{"point": [400, 500], "label": "Continue straight ahead"}},
-                {{"point": [450, 500], "label": "Arrive at building"}}
-            ]
-            """
-
-        try:
-            # Get response from Gemini
-            response = self.model.generate_content([
-                prompt,
-                {'mime_type': 'image/jpeg', 'data': encoded_image}
-            ])
-
-            # Parse response text - handle potential markdown formatting
-            response_text = response.text
-            if "```json" in response_text:
-                # Extract JSON from markdown code block
-                json_start = response_text.find("```json") + 7
-                json_end = response_text.find("```", json_start)
-                response_text = response_text[json_start:json_end].strip()
-            elif "```" in response_text:
-                # Extract from generic code block
-                json_start = response_text.find("```") + 3
-                json_end = response_text.find("```", json_start)
-                response_text = response_text[json_start:json_end].strip()
-            
-            print("\nGemini Response:")
-            print(response_text)
-            
-            # Parse JSON response
-            points_data = json.loads(response_text)
-            actions = []
-            
-            for point_info in points_data:
-                # Convert normalized coordinates to pixel coordinates
-                y, x = point_info['point']
-                pixel_x = int((x / 1000.0) * self.image_width)
-                pixel_y = int((y / 1000.0) * self.image_height)
-                
-                # Project 2D point to 3D
-                x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y))
-                
-                # Create ActionPoint
-                action = ActionPoint(
-                    dx=x3d, dy=y3d, dz=z3d,
-                    action_type="move",
-                    screen_x=pixel_x,
-                    screen_y=pixel_y
-                )
-                actions.append(action)
-                
-                print(f"\nIdentified point: {point_info['label']}")
-                print(f"2D Normalized: ({x}, {y})")
-                print(f"2D Pixels: ({pixel_x}, {pixel_y})")
-                print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
-            
-            return actions
-            
-        except Exception as e:
-            print(f"Error parsing Gemini response: {e}")
-            print("Full response:")
-            print(response.text)
-            return []
 
     def calculate_adjusted_depth(self, gemini_depth):
         """
@@ -306,13 +263,55 @@ class ActionProjector:
         print(f"Gemini depth {gemini_depth}/10 → Adjusted depth {adjusted_depth:.2f}")
         return adjusted_depth
 
-    def _get_single_action(self, image: np.ndarray, instruction: str) -> ActionPoint:
-        """Get single next best action"""
+    def _get_single_action(self, image: np.ndarray, instruction: str, tello_controller=None) -> ActionPoint:
+        """Get single next best action with mode-specific processing"""
         _, buffer = cv2.imencode('.jpg', image)
         encoded_image = base64.b64encode(buffer).decode('utf-8')
         
+        # Mode-specific processing
+        if self.operational_mode == "obstacle_mode":
+            # Enhanced obstacle-aware processing
+            print("\\nFinished encoding image")
+            print(f"[GEMINI] Preparing API call at {time.strftime('%H:%M:%S')}")
+            api_start_time = time.time()
+            
+            # Ensure intensive keepalive is active right before the API call
+            if tello_controller:
+                print("[GEMINI] Confirming intensive keepalive before API call")
+                tello_controller.start_intensive_keepalive()
 
-        prompt = f"""You are a drone navigation expert analyzing a drone camera view.
+            prompt = f"""You are a drone navigation expert analyzing a drone camera view.
+
+        Task: {instruction}
+
+        main task:
+        1. Identify objects in the image that match the description "{instruction}". 
+        2. Then, select the MOST RELEVANT target object and place a "target point" DIRECTLY ON that object.
+        sub task:
+        3. Identify obstacles in the path, if necessary, "slighty" adjust the point.
+        
+        Return in this JSON format:
+        {{
+            "point": [y, x],
+            "label": "action description",
+            "obstacles": [
+                    {{"bounding_box": [ymin, xmin, ymax, xmax], "label": "obstacle_description"}}
+            ]
+        }}
+
+        Coordinate system:
+        - x: 0-1000 scale (500=center, >500=right, <500=left)
+        - y: 0-1000 scale (lower values=higher in image/sky)
+
+        Notes:
+        - "Pointing on the target" is the most important thing.
+        - Prioritize the closest/largest matching object if multiple exist
+        - Consider immediate obstacles and choose a safe path.
+        - Aim for target's center.
+        """
+        else:
+            # Adaptive mode - original behavior
+            prompt = f"""You are a drone navigation expert analyzing a drone camera view.
 
             Task: {instruction}
 
@@ -334,13 +333,24 @@ class ActionProjector:
             - Choose the largest/closest matching object if multiple exist
             - Assess the depth based on how much of the frame the object occupies
             - Your accuracy in point placement is critical for navigation success"""
-        
+
         try:
             # Get response from Gemini
+            if self.operational_mode == "obstacle_mode":
+                print(f"[GEMINI] Sending API request at {time.strftime('%H:%M:%S')}")
+                
             response = self.model.generate_content([
                 prompt,
                 {'mime_type': 'image/jpeg', 'data': encoded_image}
             ])
+            
+            if self.operational_mode == "obstacle_mode":
+                api_duration = time.time() - api_start_time
+                print(f"[GEMINI] Response received in {api_duration:.2f} seconds")
+                
+                # API call complete, can go back to normal keepalive if needed
+                if tello_controller:
+                    tello_controller.stop_intensive_keepalive()
 
             # Parse response text - handle potential markdown formatting
             response_text = response.text
@@ -353,52 +363,135 @@ class ActionProjector:
                 json_end = response_text.find("```", json_start)
                 response_text = response_text[json_start:json_end].strip()
             
-            print("\nGemini Response:")
+            print("\\nGemini Response:")
             print(response_text)
             
-            # Parse JSON response
-            points_data = json.loads(response_text)
-            if not points_data:
-                raise ValueError("No points returned from Gemini")
-            
-            # Take first (and should be only) point
-            point_info = points_data[0]
-            
-            # Convert normalized coordinates to pixel coordinates
-            y, x = point_info['point']
-            pixel_x = int((x / 1000.0) * self.image_width)
-            pixel_y = int((y / 1000.0) * self.image_height)
-            
-            # Get depth from Gemini's response (default to 4 if not provided)
-            gemini_depth = point_info.get('depth', 4)  # Default to middle range if not specified
-            
-            # Use the new non-linear depth adjustment
-            adjusted_depth = self.calculate_adjusted_depth(gemini_depth)
-            
-            # Project 2D point to 3D with custom depth
-            x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y), depth=adjusted_depth)
-            
-
-            # Create ActionPoint
-            action = ActionPoint(
-                dx=x3d, dy=y3d, dz=z3d,
-                action_type="move",
-                screen_x=pixel_x,
-                screen_y=pixel_y
-            )
-            
-            print(f"\nIdentified single action: {point_info['label']}")
-            print(f"2D Normalized: ({x}, {y})")
-            print(f"2D Pixels: ({pixel_x}, {pixel_y})")
-            print(f"Depth estimation: {gemini_depth}/10 (adjusted to {adjusted_depth:.2f})")
-            print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
-            
-            return action
+            # Mode-specific JSON parsing
+            if self.operational_mode == "obstacle_mode":
+                try:
+                    # Parse JSON response for obstacle mode
+                    response_data = json.loads(response_text)
+                    if not response_data:
+                        raise ValueError("No data returned from Gemini")
+                    
+                    # Convert normalized coordinates to pixel coordinates
+                    y, x = response_data['point']
+                    pixel_x = int((x / 1000.0) * self.image_width)
+                    pixel_y = int((y / 1000.0) * self.image_height)
+                    
+                    # Project 2D point to 3D (obstacle mode uses default depth)
+                    x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y), depth=1.1)
+                    
+                    # Create ActionPoint
+                    action = ActionPoint(
+                        dx=x3d, dy=y3d, dz=z3d,
+                        action_type="move",
+                        screen_x=pixel_x,
+                        screen_y=pixel_y
+                    )
+                    
+                    # Add obstacles if present
+                    if 'obstacles' in response_data:
+                        obstacles = []
+                        for obstacle in response_data['obstacles']:
+                            if 'bounding_box' in obstacle:
+                                ymin, xmin, ymax, xmax = obstacle['bounding_box']
+                                # Convert to pixel coordinates if normalized
+                                if max(obstacle['bounding_box']) <= 1000:
+                                    xmin = int((xmin / 1000.0) * self.image_width)
+                                    ymin = int((ymin / 1000.0) * self.image_height)
+                                    xmax = int((xmax / 1000.0) * self.image_width)
+                                    ymax = int((ymax / 1000.0) * self.image_height)
+                                obstacle['bounding_box'] = [ymin, xmin, ymax, xmax]
+                            obstacles.append(obstacle)
+                        action.detected_obstacles = obstacles
+                    
+                    print(f"\\nIdentified single action: {response_data.get('label')}")
+                    print(f"2D Normalized: ({x}, {y})")
+                    print(f"2D Pixels: ({pixel_x}, {pixel_y})")
+                    print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
+                    if hasattr(action, 'detected_obstacles') and action.detected_obstacles:
+                        print(f"Detected {len(action.detected_obstacles)} obstacles")
+                    
+                    return action
+                    
+                except json.JSONDecodeError as json_error:
+                    print(f"[GEMINI] Error parsing JSON: {json_error}")
+                    print(f"[GEMINI] Raw response text: {response_text}")
+                    
+                    # Try to manually extract the point information using regex
+                    import re
+                    point_match = re.search(r'"point":\\s*\\[(\\d+),\\s*(\\d+)\\]', response_text)
+                    if point_match:
+                        print("[GEMINI] Attempting fallback point extraction with regex")
+                        y, x = int(point_match.group(1)), int(point_match.group(2))
+                        pixel_x = int((x / 1000.0) * self.image_width)
+                        pixel_y = int((y / 1000.0) * self.image_height)
+                        x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y), depth=1.1)
+                        
+                        # Create basic ActionPoint without obstacles
+                        action = ActionPoint(
+                            dx=x3d, dy=y3d, dz=z3d,
+                            action_type="move",
+                            screen_x=pixel_x,
+                            screen_y=pixel_y
+                        )
+                        print(f"[GEMINI] Fallback action created: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
+                        return action
+                    
+                    raise
+            else:
+                # Adaptive mode - original JSON parsing with depth
+                points_data = json.loads(response_text)
+                if not points_data:
+                    raise ValueError("No points returned from Gemini")
+                
+                # Take first (and should be only) point
+                point_info = points_data[0]
+                
+                # Convert normalized coordinates to pixel coordinates
+                y, x = point_info['point']
+                pixel_x = int((x / 1000.0) * self.image_width)
+                pixel_y = int((y / 1000.0) * self.image_height)
+                
+                # Get depth from Gemini's response (default to 4 if not provided)
+                gemini_depth = point_info.get('depth', 4)
+                
+                # Use the new non-linear depth adjustment
+                adjusted_depth = self.calculate_adjusted_depth(gemini_depth)
+                
+                # Project 2D point to 3D with custom depth
+                x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y), depth=adjusted_depth)
+                
+                # Create ActionPoint
+                action = ActionPoint(
+                    dx=x3d, dy=y3d, dz=z3d,
+                    action_type="move",
+                    screen_x=pixel_x,
+                    screen_y=pixel_y
+                )
+                
+                print(f"\\nIdentified single action: {point_info['label']}")
+                print(f"2D Normalized: ({x}, {y})")
+                print(f"2D Pixels: ({pixel_x}, {pixel_y})")
+                print(f"Depth estimation: {gemini_depth}/10 (adjusted to {adjusted_depth:.2f})")
+                print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
+                
+                return action
             
         except Exception as e:
-            print(f"Error in single action mode: {e}")
-            print("Full response:")
-            print(response.text)
+            if self.operational_mode == "obstacle_mode":
+                print(f"[GEMINI] Error in API call: {e}")
+                if 'response' in locals():
+                    print("[GEMINI] Full response:")
+                    print(response.text)
+                else:
+                    print("[GEMINI] No response received from API")
+            else:
+                print(f"Error in single action mode: {e}")
+                print("Full response:")
+                if 'response' in locals():
+                    print(response.text)
             return None
 
     def visualize_coordinate_system(self, image: np.ndarray = None) -> np.ndarray:
@@ -462,4 +555,4 @@ class ActionProjector:
         return image
 
 if __name__ == "__main__":
-    test_drone_navigation() 
+    print("ActionProjector module - import this module to use ActionProjector class") 

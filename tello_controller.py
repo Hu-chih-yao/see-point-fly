@@ -181,7 +181,7 @@ class RealtimeFrameProvider:
 
 
 class TelloController:
-    def __init__(self):
+    def __init__(self, mode="adaptive_mode"):
         self.tello = Tello()  # Create Tello instance
         self.tello.connect()
         self.tello.streamon()
@@ -189,8 +189,12 @@ class TelloController:
         # Initialize real-time frame provider
         self.frame_provider = RealtimeFrameProvider(self.tello)
         
-        # Initialize frame recorder
-        self.frame_recorder = FrameRecorder(self.frame_provider)
+        # Store operational mode
+        self.operational_mode = mode
+        
+        # Initialize frame recorder with mode-specific FPS
+        fps = 10 if mode == "obstacle_mode" else 3
+        self.frame_recorder = FrameRecorder(self.frame_provider, fps=fps)
         
         # Initialize control parameters
         self.action_queue = queue.Queue()
@@ -208,6 +212,19 @@ class TelloController:
         self.control_thread = threading.Thread(target=self._tello_control_loop)
         self.control_thread.daemon = True
         self.control_thread.start()
+        
+        # Start keepalive thread (obstacle_mode only)
+        if mode == "obstacle_mode":
+            self.keepalive_active = True
+            self.last_command_time = time.time()
+            self.keepalive_interval = 5  # Default interval in seconds
+            self.intensive_keepalive = False  # Flag for intensive keepalive mode
+            self.keepalive_thread = threading.Thread(target=self._keepalive_loop)
+            self.keepalive_thread.daemon = True
+            self.keepalive_thread.start()
+            print("[KEEPALIVE] Thread started - will prevent automatic landing")
+        else:
+            self.keepalive_active = False
         
         # Start manual override keyboard listener
         self.key_listener = Listener(
@@ -281,7 +298,9 @@ class TelloController:
 
         # Initialize action space for command conversion
         self.action_space = DroneActionSpace()
-        self.action_projector = ActionProjector()
+        self.action_projector = ActionProjector(mode=mode)
+        
+        print(f"TelloController initialized in {mode} mode. Drone connected and ready.")
         
         # Add data collection attributes
         self.data_dir = "tello_training_data"
@@ -537,29 +556,47 @@ class TelloController:
             print(f"Queue emptied after {time.time() - start_time:.2f} seconds")
         return True
     
-    def process_spatial_command(self, current_frame, instruction: str, mode: str = "waypoint"):
-        """Process command using spatial understanding system - same as DroneController"""
+    def process_spatial_command(self, current_frame, instruction: str, mode: str = "single"):
+        """Process command using spatial understanding system with mode-specific handling"""
         try:
-            # Set mode and get actions
-            self.action_projector.set_mode(mode)
-            actions = self.action_projector.get_gemini_points(current_frame, instruction)
+            # Mode-specific processing for obstacle_mode
+            if self.operational_mode == "obstacle_mode":
+                # Record start time for API call
+                api_start_time = time.time()
+                print(f"[KEEPALIVE] API call starting at {time.strftime('%H:%M:%S')} - keepalive protection active")
+                
+                # Start intensive keepalive before API call
+                self.start_intensive_keepalive()
+                
+                # Pass controller reference to action projector for keepalive control
+                actions = self.action_projector.get_gemini_points(current_frame, instruction, tello_controller=self)
+                
+                # Return to normal keepalive after API call
+                self.stop_intensive_keepalive()
+                
+                # Report API call duration
+                api_duration = time.time() - api_start_time
+                print(f"[KEEPALIVE] API call completed in {api_duration:.2f} seconds")
+            else:
+                # Adaptive mode - standard processing
+                actions = self.action_projector.get_gemini_points(current_frame, instruction)
             
             if not actions:
                 return "No valid actions identified"
             
-            response_text = f"\n=== {mode.upper()} MODE ===\n"
+            response_text = f"\\n=== {self.operational_mode.upper()} ===\\n"
             
-            if mode == "waypoint":
-                for i, action in enumerate(actions, 1):
-                    response_text += f"\nWaypoint {i}/{len(actions)}:"
-                    response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
-                    self._execute_spatial_action(action, quiet=True)
-            else:
-                action = actions[0]
-                if action is None:
-                    return "No valid action"
-                response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
-                self._execute_spatial_action(action, quiet=True)
+            # Execute single action
+            action = actions[0]
+            if action is None:
+                return "No valid action"
+            
+            if self.operational_mode == "obstacle_mode":
+                print("\\n action in process_spatial_command part(obstacle mode):")
+                print("/n", actions)
+            
+            response_text += f"\\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
+            self._execute_spatial_action(action, quiet=True)
             
             return response_text
             
@@ -595,8 +632,73 @@ class TelloController:
         except Exception as e:
             print(f"Landing error: {e}")
     
+    def _keepalive_loop(self):
+        """Send keepalive commands to prevent the drone from auto-landing after 15 seconds (obstacle_mode only)"""
+        last_status_time = 0
+        status_interval = 30  # Check and print status every 30 seconds
+        
+        while self.running and self.keepalive_active:
+            try:
+                current_time = time.time()
+                
+                # Only send keepalive when flying and not manually controlled
+                if self.tello.is_flying and not self.manual_control_active:
+                    # Send keepalive command
+                    self.tello.send_keepalive()
+                    if self.intensive_keepalive:
+                        print(f"[KEEPALIVE-INTENSIVE] Signal sent at {time.strftime('%H:%M:%S')}")
+                    else:
+                        print(f"[KEEPALIVE] Signal sent at {time.strftime('%H:%M:%S')}")
+                
+                # Periodically print status information
+                if current_time - last_status_time > status_interval:
+                    self.check_drone_status()
+                    last_status_time = current_time
+                    
+            except Exception as e:
+                print(f"[KEEPALIVE] Error: {e}")
+            
+            # Use shorter interval during intensive mode
+            if self.intensive_keepalive:
+                time.sleep(1)  # Send every 1 second during API calls
+            else:
+                time.sleep(self.keepalive_interval)  # Normal interval
+    
+    def check_drone_status(self):
+        """Check and print comprehensive drone status (obstacle_mode only)"""
+        try:
+            bat = self.tello.get_battery()
+            temp = self.tello.get_temperature()
+            height = self.tello.get_height()
+            flight_time = self.tello.get_flight_time()
+            
+            print(f"[TELLO STATUS] Battery: {bat}%, Temp: {temp}°C, Height: {height}cm, Flight time: {flight_time}s")
+            
+            if bat < 20:
+                print("[TELLO WARNING] Battery level critical!")
+            
+            return bat, temp, height, flight_time
+        except Exception as e:
+            print(f"[TELLO ERROR] Status check failed: {e}")
+            return None
+    
+    def start_intensive_keepalive(self):
+        """Start sending keepalive signals more frequently during API calls (obstacle_mode only)"""
+        if self.operational_mode == "obstacle_mode":
+            self.intensive_keepalive = True
+            print("[KEEPALIVE] Starting intensive mode (1-second interval)")
+    
+    def stop_intensive_keepalive(self):
+        """Return to normal keepalive frequency (obstacle_mode only)"""
+        if self.operational_mode == "obstacle_mode":
+            self.intensive_keepalive = False
+            print("[KEEPALIVE] Returning to normal mode")
+    
     def stop(self):
         """Stop the drone and cleanup"""
+        # Stop keepalive thread (obstacle_mode only)
+        if self.operational_mode == "obstacle_mode":
+            self.keepalive_active = False
         self.running = False
         
         # Stop frame recording if active
@@ -629,8 +731,12 @@ class TelloController:
         if hasattr(self, 'key_listener') and self.key_listener.is_alive():
             self.key_listener.stop()
             
-        # Stop keyboard thread
+        # Stop threads
         if self.control_thread.is_alive():
             self.control_thread.join(timeout=1.0)
+        
+        if (self.operational_mode == "obstacle_mode" and 
+            hasattr(self, 'keepalive_thread') and self.keepalive_thread.is_alive()):
+            self.keepalive_thread.join(timeout=1.0)
 
-        print("TelloController stopped and cleaned up") 
+        print(f"TelloController ({self.operational_mode}) stopped and cleaned up") 
