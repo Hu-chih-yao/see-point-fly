@@ -39,6 +39,8 @@ ENV/
 Thumbs.db 
 .qodo
 
+# Folders
 tello_debug_frames
 Tello_frame_capture
 raw_frames
+output
