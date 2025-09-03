@@ -30,27 +30,6 @@ class DroneActionSpace:
         self.move_time = 500 #time to move 1 unit (1000->50, 555->90, 500->100)
 
         
-    def sample_actions(self) -> List[ActionPoint]:
-        """Sample possible relative movements from current position (0,0,0)"""
-        actions = []
-        
-        # Sample points in a hemisphere in front of the drone
-        for _ in range(self.n_samples):
-            # Random spherical coordinates
-            distance = np.random.uniform(0.5, self.max_movement)
-            azimuth = np.random.uniform(-self.camera_fov/2, self.camera_fov/2)
-            elevation = np.random.uniform(-self.camera_fov/4, self.camera_fov/4)
-            
-            # Convert to relative Cartesian movements
-            dx = distance * math.cos(math.radians(elevation)) * math.sin(math.radians(azimuth))
-            dy = distance * math.cos(math.radians(elevation)) * math.cos(math.radians(azimuth))
-            dz = distance * math.sin(math.radians(elevation))
-            
-            action = ActionPoint(dx, dy, dz, "move")
-            actions.append(action)
-            
-        return actions
-    
     def action_to_commands(self, action: ActionPoint) -> List[Tuple[str, int]]:
         """Convert a relative movement action into drone commands"""
         commands = []
@@ -116,29 +95,6 @@ class DroneActionSpace:
             'last_action': action,
             'duration': duration_ms
         }
-
-def test_action_space():
-    """Test the action space implementation"""
-    action_space = DroneActionSpace(n_samples=8)
-    
-    # Sample some actions
-    print("\nSampled relative movements:")
-    actions = action_space.sample_actions()
-    for i, action in enumerate(actions, 1):
-        print(f"\nAction {i}:")
-        print(f"  {action}")
-        commands = action_space.action_to_commands(action)
-        print("  Converts to commands:")
-        for cmd, duration in commands:
-            print(f"    {cmd}: {duration}ms")
-
-    # Test a specific movement
-    print("\nTesting specific movement (1,1,1):")
-    test_action = ActionPoint(1.0, 1.0, 1.0, "move")
-    commands = action_space.action_to_commands(test_action)
-    print(f"Movement {test_action} converts to:")
-    for cmd, duration in commands:
-        print(f"  {cmd}: {duration}ms")
 
 if __name__ == "__main__":
     test_action_space() 
