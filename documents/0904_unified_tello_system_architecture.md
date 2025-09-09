@@ -180,7 +180,7 @@ def calculate_adjusted_depth(gemini_depth):
 
 **Technical Characteristics**:
 ```yaml
-Model: gemini-2.5-pro-preview-03-25
+Model: gemini-2.5-pro
 Obstacle_Detection: Bounding box identification
 Frame_Recording: 10fps
 Keepalive_System: Intensive (1s intervals during API calls)

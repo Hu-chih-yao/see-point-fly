@@ -79,7 +79,7 @@ class ActionProjectorSim:
         if self.api_provider == "openai":
             return "google/gemini-2.5-pro"
         else:  # gemini provider
-            return "gemini-2.5-pro-preview-03-25"
+            return "gemini-2.5-pro"
 
     def project_point(self, point_3d: Tuple[float, float, float]) -> Tuple[int, int]:
         """Project 3D point using proper perspective projection for drone view"""

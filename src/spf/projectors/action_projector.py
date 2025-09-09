@@ -86,7 +86,7 @@ class ActionProjector:
                 return "google/gemini-2.0-flash-001"
         else:  # gemini provider
             if mode == "obstacle_mode":
-                return "gemini-2.5-pro-preview-03-25"
+                return "gemini-2.5-pro"
             else:
                 return "gemini-2.0-flash"
 
