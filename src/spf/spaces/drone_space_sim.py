@@ -149,5 +149,4 @@ class DroneActionSpaceSim:
         }
 
 if __name__ == "__main__":
-    # Test code removed
-    pass
+    print("DroneActionSpaceSim module - import this module to use DroneActionSpaceSim class")
