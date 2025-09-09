@@ -10,6 +10,7 @@ dependencies = [
     "matplotlib>=3.10.6",
     "mss>=10.1.0",
     "numpy>=2.3.2",
+    "openai>=1.107.0",
     "opencv-python>=4.11.0.86",
     "pillow>=11.3.0",
     "pynput>=1.8.1",
