@@ -14,56 +14,100 @@
 
 ## System Overview
 
-The Unified Tello System is a comprehensive drone navigation platform that supports two main execution environments (Tello and Simulator) and two operational modes within the Tello environment (Adaptive and Obstacle). This architecture provides flexibility for different use cases while maintaining code consistency and shared improvements.
+The VLM Tello Integration System consists of two independent drone navigation platforms:
+
+1. **Tello Mode**: Controls physical DJI Tello drones with two operational modes (Adaptive and Obstacle)
+2. **Simulator Mode**: Provides virtual drone simulation for development and testing
+
+Each mode has its own entry point, controller, and supporting components, allowing for specialized functionality while maintaining architectural consistency.
 
 ### High-Level Architecture
 
 ```
 VLM Tello Integration System
-├── Main Modes
-│   ├── Tello Mode (Physical Drone)
+├── Tello Mode (Physical Drone)
+│   ├── Entry Point: main_tello.py
+│   ├── Operational Modes:
 │   │   ├── adaptive_mode (Precision Navigation)
 │   │   └── obstacle_mode (Safe Navigation)
-│   └── Simulator Mode (Virtual Environment)
-└── Shared Components
-    ├── Action Projection System
-    ├── Drone Action Space
-    └── Configuration Management
+│   └── Components: action_projector.py, tello_controller.py, 
+│       drone_space.py, config_tello.yaml
+└── Simulator Mode (Virtual Environment)
+    ├── Entry Point: main_sim.py
+    ├── Single Operation Mode
+    └── Components: action_projector_sim.py, drone_controller_sim.py,
+        drone_space_sim.py, config_sim.yaml
 ```
 
 ## Architecture Design
 
+### File Organization
+
+#### Tello Mode Files
+- **Entry Point**: `main_tello.py`
+- **Core Components**: 
+  - `tello_controller.py` - Physical drone control and communication
+  - `action_projector.py` - 2D/3D projection and Gemini integration
+  - `drone_space.py` - Action space and command conversion
+- **Configuration**: `config_tello.yaml`
+
+#### Simulator Mode Files  
+- **Entry Point**: `main_sim.py`
+- **Core Components**:
+  - `drone_controller_sim.py` - Virtual drone control via keyboard simulation
+  - `action_projector_sim.py` - Screen-based projection and Gemini integration  
+  - `drone_space_sim.py` - Simulator-specific action space
+- **Configuration**: `config_sim.yaml`
+
 ### Core Design Principles
 
-1. **Mode-Driven Architecture**: All components are initialized and configured based on operational mode
-2. **Configuration-Based Switching**: Runtime behavior determined by YAML configuration
-3. **Shared Component Library**: Common functionality across all modes
+1. **Separate System Architecture**: Two independent systems with their own entry points and components
+2. **Mode-Driven Configuration**: Tello mode supports dual operational modes via configuration
+3. **Specialized Components**: Each system has optimized components for its environment
 4. **Safety-First Design**: Multiple safety layers and error recovery mechanisms
 
 ### Component Hierarchy
 
+#### Tello Mode Architecture
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Main Controller                          │
+│                 Tello Entry Point                           │
 │                 (main_tello.py)                            │
 └─────────────────────┬───────────────────────────────────────┘
                       │
-          ┌───────────┴───────────┐
-          │                       │
-    ┌─────▼─────┐           ┌─────▼─────┐
-    │   Tello   │           │ Simulator │
-    │Controller │           │Controller │
-    └─────┬─────┘           └───────────┘
-          │
-    ┌─────▼─────┐
-    │  Action   │
-    │ Projector │
-    └─────┬─────┘
-          │
-    ┌─────▼─────┐
-    │  Drone    │
-    │ ActionSpace│
-    └───────────┘
+    ┌─────────────────▼─────────────────┐
+    │           TelloController         │
+    │         (tello_controller.py)     │
+    └─────────────────┬─────────────────┘
+                      │
+          ┌───────────┼───────────┐
+          │           │           │
+    ┌─────▼─────┐ ┌───▼────┐ ┌───▼─────┐
+    │  Action   │ │ Drone  │ │ Config  │
+    │ Projector │ │ Space  │ │  Tello  │
+    │   .py     │ │  .py   │ │  .yaml  │
+    └───────────┘ └────────┘ └─────────┘
+```
+
+#### Simulator Mode Architecture  
+```
+┌─────────────────────────────────────────────────────────────┐
+│               Simulator Entry Point                         │
+│                 (main_sim.py)                              │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+    ┌─────────────────▼─────────────────┐
+    │        DroneController           │
+    │     (drone_controller_sim.py)     │
+    └─────────────────┬─────────────────┘
+                      │
+          ┌───────────┼───────────┐
+          │           │           │
+    ┌─────▼─────┐ ┌───▼────┐ ┌───▼─────┐
+    │  Action   │ │ Drone  │ │ Config  │
+    │Projector  │ │ Space  │ │   Sim   │
+    │ _sim.py   │ │_sim.py │ │ .yaml   │
+    └───────────┘ └────────┘ └─────────┘
 ```
 
 ## Operational Modes
@@ -207,42 +251,65 @@ class ActionPoint:
 
 ## Data Flow Analysis
 
-### Adaptive Mode Data Flow
+### Tello Mode Data Flows
 
+#### Adaptive Mode Data Flow (Tello)
 ```
 ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Camera    │───▶│   Frame      │───▶│    Gemini       │
+│ Tello Camera│───▶│   Frame      │───▶│    Gemini       │
 │   Capture   │    │ Processing   │    │   2.0 Flash     │
+│(tello_controller)│ (main_tello) │    │(action_projector)│
 └─────────────┘    └──────────────┘    └─────────┬───────┘
                                                  │
 ┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
-│   Action    │◀───│   3D Point   │◀───│ Depth Estimation│
-│  Execution  │    │ Projection   │    │   JSON Parse    │
+│   Drone     │◀───│   3D Point   │◀───│ Depth Estimation│
+│  Commands   │    │ Projection   │    │   JSON Parse    │
+│(tello_controller)│(action_projector)│ │(action_projector)│
 └─────────────┘    └──────────────┘    └─────────────────┘
 ```
 
-### Obstacle Mode Data Flow
-
+#### Obstacle Mode Data Flow (Tello)
 ```
 ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Camera    │───▶│   Frame      │───▶│  Keepalive      │
+│ Tello Camera│───▶│   Frame      │───▶│  Keepalive      │
 │   Capture   │    │ Processing   │    │  Activation     │
+│(tello_controller)│ (main_tello) │    │(tello_controller)│
 └─────────────┘    └──────────────┘    └─────────┬───────┘
                                                  │
 ┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
 │   Safety    │◀───│   Obstacle   │◀───│   Gemini        │
 │  Navigation │    │  Detection   │    │ 2.5 Pro Preview│
+│(tello_controller)│(action_projector)│ │(action_projector)│
 └─────────────┘    └──────────────┘    └─────────┬───────┘
                                                  │
 ┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
-│  Keepalive  │    │   Action     │    │  Timeout &      │
-│Deactivation │    │  Execution   │    │ Error Handling  │
+│  Keepalive  │    │   Drone      │    │  Timeout &      │
+│Deactivation │    │  Commands    │    │ Error Handling  │
+│(tello_controller)│(tello_controller)│ │  (main_tello)   │
+└─────────────┘    └──────────────┘    └─────────────────┘
+```
+
+### Simulator Mode Data Flow
+
+```
+┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   Screen    │───▶│   Frame      │───▶│    Gemini       │
+│  Capture    │    │ Processing   │    │ 2.5 Pro Preview│
+│(drone_controller)│  (main_sim)  │    │(action_projector)│
+└─────────────┘    └──────────────┘    └─────────┬───────┘
+                                                 │
+┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
+│  Keyboard   │◀───│   Action     │◀───│   Obstacle      │
+│  Commands   │    │ Conversion   │    │  Detection      │
+│(drone_controller)│(drone_space_sim)│ │(action_projector)│
 └─────────────┘    └──────────────┘    └─────────────────┘
 ```
 
 ## Configuration System
 
-### Primary Configuration File: `config_tello.yaml`
+### Tello Mode Configuration
+
+#### Primary Configuration File: `config_tello.yaml`
 
 ```yaml
 # Operational Mode Configuration
@@ -255,12 +322,30 @@ command_loop_delay: 2  # seconds between processing cycles
 # These are automatically handled based on operational_mode
 ```
 
-### Configuration Loading Pipeline
+#### Configuration Loading Pipeline
 
-1. **Main Controller** loads `config_tello.yaml`
+1. **Main Controller** (`main_tello.py`) loads `config_tello.yaml`
 2. **Mode Detection** from `operational_mode` parameter
 3. **Component Initialization** with mode-specific parameters
 4. **Runtime Behavior** adaptation based on mode
+
+### Simulator Mode Configuration
+
+#### Primary Configuration File: `config_sim.yaml`
+
+```yaml
+# Processing Configuration
+command_loop_delay: 0  # seconds between processing cycles
+
+# Simulator-specific settings
+# Single operational mode (no mode switching)
+```
+
+#### Configuration Loading Pipeline
+
+1. **Main Controller** (`main_sim.py`) loads `config_sim.yaml`
+2. **Standard Initialization** with simulator-specific parameters
+3. **Runtime Behavior** optimized for virtual environment
 
 ### Environment Configuration: `.env`
 
@@ -270,10 +355,15 @@ GEMINI_API_KEY=your_api_key_here
 
 ## API Interfaces
 
-### ActionProjector API
+### Tello Mode APIs
+
+#### ActionProjector API (`action_projector.py`)
 
 ```python
 class ActionProjector:
+    def __init__(self, mode="adaptive_mode"):
+        """Initialize with operational mode (adaptive_mode/obstacle_mode)"""
+        
     def get_gemini_points(self, 
                          image: np.ndarray, 
                          instruction: str, 
@@ -282,7 +372,7 @@ class ActionProjector:
         Main processing method that handles both operational modes
         
         Args:
-            image: Input camera frame
+            image: Input camera frame from Tello
             instruction: Natural language command
             tello_controller: Controller reference for keepalive (obstacle_mode)
             
@@ -291,10 +381,13 @@ class ActionProjector:
         """
 ```
 
-### TelloController API
+#### TelloController API (`tello_controller.py`)
 
 ```python
 class TelloController:
+    def __init__(self, mode="adaptive_mode"):
+        """Initialize with operational mode"""
+        
     def process_spatial_command(self, 
                                current_frame: np.ndarray,
                                instruction: str, 
@@ -303,7 +396,7 @@ class TelloController:
         Process spatial command with mode-specific handling
         
         Args:
-            current_frame: Camera frame to process
+            current_frame: Camera frame from Tello
             instruction: Natural language instruction
             mode: Processing mode (always "single" in current implementation)
             
@@ -312,9 +405,54 @@ class TelloController:
         """
 ```
 
+### Simulator Mode APIs
+
+#### ActionProjector API (`action_projector_sim.py`)
+
+```python
+class ActionProjector:
+    def __init__(self, image_width=3420, image_height=2214):
+        """Initialize for simulator screen resolution"""
+        
+    def get_gemini_points(self, 
+                         image: np.ndarray, 
+                         instruction: str) -> List[ActionPoint]:
+        """
+        Process screen capture for simulator navigation
+        
+        Args:
+            image: Screen capture frame
+            instruction: Natural language command
+            
+        Returns:
+            List containing single ActionPoint with obstacle detection
+        """
+```
+
+#### DroneController API (`drone_controller_sim.py`)
+
+```python
+class DroneController:
+    def process_spatial_command(self, 
+                               current_frame: np.ndarray,
+                               instruction: str) -> str:
+        """
+        Process spatial command for virtual drone
+        
+        Args:
+            current_frame: Screen capture frame
+            instruction: Natural language instruction
+            
+        Returns:
+            String description of keyboard commands executed
+        """
+```
+
 ## Technical Specifications
 
 ### Performance Characteristics
+
+#### Tello Mode Performance
 
 | Metric | Adaptive Mode | Obstacle Mode |
 |--------|---------------|---------------|
@@ -323,29 +461,67 @@ class TelloController:
 | **Recording Rate** | 3fps | 10fps |
 | **Memory Usage** | ~200MB | ~250MB |
 | **CPU Usage** | Medium | Medium-High |
-| **Network Usage** | Low | Medium |
+| **Network Usage** | Low (Tello Wi-Fi) | Medium (Tello Wi-Fi) |
+
+#### Simulator Mode Performance
+
+| Metric | Simulator Mode |
+|--------|----------------|
+| **API Latency** | 3-8 seconds |
+| **Screen Capture Rate** | 20fps (configurable) |
+| **Recording Rate** | N/A (no frame recording) |
+| **Memory Usage** | ~180MB |
+| **CPU Usage** | Medium |
+| **Network Usage** | Low (API only) |
 
 ### Hardware Requirements
 
+#### Tello Mode Requirements
 - **CPU**: Multi-core processor (4+ cores recommended)
 - **RAM**: 4GB minimum, 8GB recommended
-- **Network**: Stable Wi-Fi connection to Tello
-- **Storage**: 1GB free space for frame storage
+- **Network**: Stable Wi-Fi connection to Tello drone
+- **Storage**: 2GB free space for frame storage (10fps recording in obstacle_mode)
+- **Hardware**: DJI Tello drone with charged battery
+
+#### Simulator Mode Requirements  
+- **CPU**: Multi-core processor (2+ cores minimum)
+- **RAM**: 2GB minimum, 4GB recommended
+- **Network**: Internet connection for Gemini API
+- **Storage**: 500MB free space for action visualizations
+- **Display**: Screen/monitor for simulation environment
 
 ### Software Dependencies
 
+#### Tello Mode Dependencies
 ```yaml
 Core_Dependencies:
   - Python: ">=3.13"
-  - djitellopy: "Latest"
-  - google-generativeai: "Latest"
-  - opencv-python: "Latest"
-  - numpy: "Latest"
-  - pynput: "Latest"
+  - djitellopy: "Latest"          # Tello drone communication
+  - google-generativeai: "Latest" # Gemini API
+  - opencv-python: "Latest"       # Computer vision
+  - numpy: "Latest"               # Numerical operations
+  - pynput: "Latest"              # Manual keyboard override
+  - python-dotenv: "Latest"       # Environment variables
 
-Optional_Dependencies:
-  - matplotlib: "For visualization"
-  - mpl_toolkits: "For 3D plotting"
+Visualization_Dependencies:
+  - matplotlib: "For 3D plotting and visualization"
+  - mpl_toolkits: "For 3D coordinate system visualization"
+```
+
+#### Simulator Mode Dependencies
+```yaml
+Core_Dependencies:
+  - Python: ">=3.13"
+  - mss: "Latest"                 # Screen capture
+  - google-generativeai: "Latest" # Gemini API
+  - opencv-python: "Latest"       # Computer vision
+  - numpy: "Latest"               # Numerical operations
+  - pynput: "Latest"              # Keyboard simulation
+  - python-dotenv: "Latest"       # Environment variables
+
+Visualization_Dependencies:
+  - matplotlib: "For action visualization"
+  - mpl_toolkits: "For coordinate system debugging"
 ```
 
 ## Implementation Details

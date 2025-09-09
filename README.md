@@ -4,15 +4,15 @@ An advanced drone navigation system that uses Vision Language Models (VLM) to co
 
 ## Overview
 
-This system provides two main operation modes:
+This system provides two main operation environments:
 
 ### 🚁 **Tello Mode** (Physical Drone Control)
-Control real DJI Tello drones using natural language commands with two operational modes:
+Control real DJI Tello drones using natural language commands. Choose between two operational modes:
 - **Adaptive Mode**: Precision navigation with advanced depth estimation
 - **Obstacle Mode**: Enhanced safety with obstacle detection and avoidance
 
 ### 🎮 **Simulator Mode** (Virtual Environment) 
-Test and develop navigation algorithms in a simulated environment using screen capture and keyboard controls.
+Test and develop navigation algorithms in a simulated environment using screen capture and keyboard controls. Perfect for development and testing without a physical drone.
 
 ## System Architecture
 
@@ -31,7 +31,9 @@ This software is proprietary and closed-source. All rights reserved.
 No part of this software may be used, copied, modified, or distributed without express written permission.
 See LICENSE file for details.
 
-## Operational Modes
+## Tello Mode - Operational Modes
+
+When using **Tello Mode** (physical drone), you can choose between two operational modes:
 
 ### 🎯 **Adaptive Mode** (Precision Navigation)
 - **Best for**: Indoor navigation, precise positioning tasks
@@ -63,11 +65,19 @@ For comprehensive technical documentation including system architecture, data fl
 
 ## Prerequisites
 
-- uv
+### For Both Modes
+- uv (Python package manager)
 - Python 3.13+
 - Google Gemini API key
+
+### For Tello Mode (Physical Drone)
 - DJI Tello drone
 - Good Wi-Fi connection to the Tello
+- Computer with Wi-Fi capability
+
+### For Simulator Mode (Virtual Environment)
+- Any computer with a screen/monitor
+- Simulator or game environment to control
 
 ## Installation
 
@@ -76,15 +86,18 @@ For comprehensive technical documentation including system architecture, data fl
 uv sync
 ```
 
-2. Configure your environment:
-- Create a `.env` file with your Gemini API key:
-```
-GEMINI_API_KEY=your_api_key_here
-```
+2. Configure your environment (see Configuration section below)
 
 ## Configuration
 
-### Operational Mode Configuration
+### Environment Setup (Required for Both Modes)
+
+Create a `.env` file with your Gemini API key:
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+### Tello Mode Configuration
 
 Configure your navigation mode in `config_tello.yaml`:
 
@@ -96,19 +109,16 @@ operational_mode: "adaptive_mode"  # or "obstacle_mode"
 command_loop_delay: 2  # seconds between processing cycles
 ```
 
-### Mode Selection Guide
+#### Tello Mode Selection Guide
 
 | Mode | Best For | AI Model | Safety Features |
 |------|----------|----------|-----------------|
 | `adaptive_mode` | Indoor precision tasks | Gemini 2.0 Flash | Standard error handling |
 | `obstacle_mode` | Complex environments | Gemini 2.5 Pro | Enhanced safety + obstacle detection |
 
-### Environment Setup
+### Simulator Mode Configuration
 
-Create a `.env` file with your Gemini API key:
-```env
-GEMINI_API_KEY=your_api_key_here
-```
+Simulator mode uses `config_sim.yaml` (automatically configured - no manual changes needed).
 
 ## Navigation Intelligence
 
@@ -127,6 +137,7 @@ GEMINI_API_KEY=your_api_key_here
 
 ### Quick Start
 
+#### For Physical Drone (Tello Mode)
 1. **Connect** to your Tello's Wi-Fi network
 2. **Configure** your preferred mode in `config_tello.yaml`
 3. **Run** the system:
@@ -135,9 +146,18 @@ GEMINI_API_KEY=your_api_key_here
 python main_tello.py
 ```
 
-### Mode-Specific Usage
+#### For Virtual Environment (Simulator Mode)  
+1. **Open** your simulator/game environment
+2. **Run** the simulator:
 
-#### 🎯 **Adaptive Mode** (Precision Navigation)
+```bash
+python main_sim.py
+```
+3. **Switch** to your simulator window when prompted
+
+## Tello Mode - Detailed Usage
+
+### 🎯 **Adaptive Mode** (Precision Navigation)
 Best for indoor, controlled environments:
 
 ```yaml
@@ -181,7 +201,7 @@ python main_tello.py --record --record-session "outdoor_flight"
 - "fly through the doorway avoiding the walls"
 - "move to the open area while avoiding obstacles"
 
-### Advanced Options
+### Advanced Options (Tello Mode)
 
 ```bash
 # Test mode (static image)
@@ -196,6 +216,37 @@ python main_tello.py --skip-camera-check
 # Record flight with custom session name
 python main_tello.py --record --record-session "my_flight"
 ```
+
+## Simulator Mode Usage
+
+### 🎮 **Simulator Mode** (Virtual Environment)
+Perfect for development, testing, and learning without a physical drone:
+
+```bash
+# Standard simulator mode
+python main_sim.py
+
+# Debug mode with coordinate system visualization
+python main_sim.py --debug
+
+# Test mode with static image
+python main_sim.py --test
+
+# Specify monitor for screen capture (default is monitor 1)
+python main_sim.py --monitor 2
+```
+
+### Simulator Mode Setup
+1. **Open your simulator/game environment** (any visual environment you want the virtual drone to navigate)
+2. **Configure display**: The system captures your screen to understand the environment
+3. **Run simulator**: `python main_sim.py`
+4. **Switch windows**: After starting, quickly switch to your simulator window
+5. **Give commands**: Enter natural language navigation commands
+
+**Example Simulator Commands:**
+- "navigate through the center of the structure"
+- "fly toward the blue building"
+- "move around the obstacle to reach the target"
 
 ## System Modes Comparison
 
@@ -224,7 +275,8 @@ python main_tello.py --record --record-session "my_flight"
 
 ## Manual Override Controls
 
-You can take manual control at any time by pressing these keys:
+### Tello Mode Manual Controls
+When flying a physical drone, you can take manual control at any time by pressing these keys:
 
 - `↑/↓` (Arrow keys): Forward/Backward
 - `A/D`: Turn left/right
@@ -236,11 +288,14 @@ You can take manual control at any time by pressing these keys:
 
 AI control will automatically resume when you release all keys.
 
+### Simulator Mode Controls
+Simulator mode sends keyboard commands to your simulator/game environment. The specific controls depend on your simulator's keyboard mapping.
+
 ## Troubleshooting
 
-### Mode Selection Issues
+### Tello Mode Selection Issues
 
-**Problem**: Not sure which mode to use?
+**Problem**: Not sure which Tello operational mode to use?
 ```yaml
 # For indoor precision tasks
 operational_mode: "adaptive_mode"
@@ -249,14 +304,15 @@ operational_mode: "adaptive_mode"
 operational_mode: "obstacle_mode"
 ```
 
-### Connection Issues
+## Tello Mode Troubleshooting
 
+### Connection Issues
 - ✅ Ensure computer is connected to Tello's Wi-Fi network
 - ✅ Tello battery should be >50% charged
 - ✅ Keep Tello within 10 meters Wi-Fi range
 - ✅ Restart Tello if connection fails
 
-### Mode-Specific Issues
+### Operational Mode Issues
 
 #### Adaptive Mode Troubleshooting
 - **Slow Processing**: Normal for precision mode (2-5 seconds per command)
@@ -270,13 +326,27 @@ operational_mode: "obstacle_mode"
 - **High Recording**: 10fps recording uses more storage space
 
 ### Performance Issues
-
 - **API Timeouts**: Switch to `adaptive_mode` for faster processing
 - **Memory Usage**: Obstacle mode uses ~100MB more RAM
 - **Storage Space**: Obstacle mode records 3x more frames
 
 ### Safety Features
-
 - **Automatic Landing**: System lands drone after 3-5 consecutive errors
 - **Manual Override**: Use keyboard controls for immediate safety control  
 - **Battery Monitoring**: Obstacle mode includes comprehensive battery warnings
+
+## Simulator Mode Troubleshooting
+
+### Screen Capture Problems
+- **Black Screen**: Ensure the simulator window is visible and not minimized
+- **Wrong Monitor**: Use `--monitor 2` to specify correct display
+- **Resolution Mismatch**: System auto-detects resolution, but may need window adjustment
+
+### Virtual Navigation Issues
+- **Poor Detection**: Ensure good contrast and clear visual elements in simulator
+- **Slow Response**: Normal processing time is 3-8 seconds per command
+- **Keyboard Not Working**: Check that simulator window has focus after giving commands
+
+### Setup Issues
+- **Monitor Info**: Use `python main_sim.py --info` to see available monitors
+- **Debug Mode**: Use `--debug` to visualize coordinate system and verify setup
