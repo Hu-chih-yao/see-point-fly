@@ -81,9 +81,10 @@ For comprehensive technical documentation including system architecture, data fl
 
 ## Installation
 
-1. Install dependencies and create Python virtual environment:
+1. Install dependencies and activate Python virtual environment:
 ```bash
 uv sync
+source .venv/bin/activate
 ```
 
 2. Configure your environment (see Configuration section below)
