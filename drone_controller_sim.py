@@ -3,17 +3,12 @@ import numpy as np
 import mss
 import time
 from pynput.keyboard import Key, Controller
-import google.generativeai as genai
-import base64
-from io import BytesIO
-from dotenv import load_dotenv
 import os
 import threading
 import queue
 from collections import deque
 from drone_space_sim import DroneActionSpace, ActionPoint
 from action_projector_sim import ActionProjector
-import json
 from datetime import datetime
 import yaml  # Add this import
 
@@ -23,12 +18,12 @@ class DroneController:
         self.action_queue = queue.Queue()
         self.running = True
         self.action_history = deque(maxlen=5)  # Keep last 5 actions
-        
+
         # Start keyboard control thread
         self.keyboard_thread = threading.Thread(target=self._keyboard_control_loop)
         self.keyboard_thread.daemon = True
         self.keyboard_thread.start()
-        
+
         # Action mapping
         self.action_map = {
             'increase_throttle': 'w',
@@ -40,7 +35,7 @@ class DroneController:
             'pitch_forward': Key.up,
             'pitch_back': Key.down
         }
-        
+
         # Opposite actions for oscillation prevention
         self.opposite_actions = {
             'yaw_left': 'yaw_right',
@@ -52,33 +47,17 @@ class DroneController:
             'increase_throttle': 'decrease_throttle',
             'decrease_throttle': 'increase_throttle'
         }
-        
-        # Initialize Gemini
-        load_dotenv()
-        api_key = os.getenv('GEMINI_API_KEY')
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment variables")
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash-exp",
-            generation_config={
-                "temperature": 0.4,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 8192,
-            }
-        )
-        
+
         # Initialize action space for command conversion
         self.action_space = DroneActionSpace()
-        self.action_projector = ActionProjector()
-        
+        self.action_projector = ActionProjector(config_path="config_sim.yaml")
+
         # Add data collection attributes
         self.data_dir = "drone_training_data"
         self.current_episode = []
         self.episode_count = 0
         os.makedirs(self.data_dir, exist_ok=True)
-        
+
     def _keyboard_control_loop(self):
         """Separate thread for keyboard control"""
         while self.running:
@@ -90,11 +69,11 @@ class DroneController:
                 continue
             except Exception as e:
                 print(f"Keyboard control error: {e}")
-                
+
     def _execute_action(self, action_tuple):
         """Execute a single action with duration"""
         action, duration_ms = action_tuple
-        
+
         if action in self.action_map:
             key = self.action_map[action]
             try:
@@ -103,24 +82,24 @@ class DroneController:
                 self.keyboard.press(key)
                 time.sleep(duration_ms / 1000.0)  # Convert ms to seconds
                 self.keyboard.release(key)
-                
+
                 # Update drone state
                 new_state = self.action_space.update_state(action, duration_ms)
                 print(f"New state: {new_state}")
-                
+
                 # Small pause between actions
                 time.sleep(0.1)
-                
+
             except Exception as e:
                 print(f"Keyboard action failed: {e}")
                 # Make sure to release key if error occurs
                 self.keyboard.release(key)
-    
+
     def _should_avoid_action(self, proposed_action):
         """Check if action would cause oscillation"""
         if not self.action_history:
             return False
-            
+
         opposite = self.opposite_actions.get(proposed_action)
         if len(self.action_history) >= 2:
             last_two = list(self.action_history)[-2:]
@@ -128,23 +107,23 @@ class DroneController:
                 print(f"Avoiding oscillation between {proposed_action} and {opposite}")
                 return True
         return False
-    
+
     def wait_for_queue_empty(self, timeout=30, debug=False):
         """Wait until action queue is empty or timeout occurs"""
         start_time = time.time()
         if debug:
             print(f"Queue size before waiting: {self.action_queue.qsize()}")
-        
+
         while not self.action_queue.empty():
             if debug:
                 print(f"Queue not empty, remaining items: {self.action_queue.qsize()}")
-            
+
             remaining = timeout - (time.time() - start_time)
             if remaining <= 0:
                 print("Warning: Timed out waiting for action queue to empty")
                 return False
             time.sleep(0.1)  # Short sleep to prevent CPU spinning
-        
+
         if debug:
             print(f"Queue emptied after {time.time() - start_time:.2f} seconds")
         return True
@@ -153,21 +132,21 @@ class DroneController:
         """Process drone command using Gemini's spatial understanding"""
         try:
             # Get points from Gemini
-            actions = self.action_projector.get_gemini_points(current_frame, original_command)
-            
+            actions = self.action_projector.get_vlm_points(current_frame, original_command)
+
             if not actions:
                 return "No valid actions identified"
-            
+
             # Execute single action
             response_text = "Executing single action:\n"
-            
+
             for i, action in enumerate(actions, 1):
                 response_text += f"\n=== Action {i}/{len(actions)} ===\n"
                 response_text += f"Target: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})\n"
-                
+
                 # Convert 3D action to drone commands
                 commands = self.action_space.action_to_commands(action)
-                
+
                 # Execute commands for this action
                 for cmd, duration in commands:
                     if cmd in self.action_map:
@@ -176,24 +155,24 @@ class DroneController:
                         response_text += f"  {cmd}: {duration}ms\n"
                     else:
                         print(f"Warning: Invalid command {cmd}")
-                
+
                 # Add small delay between actions
                 time.sleep(0.2)  # 200ms pause between actions
-                
+
                 # Check if action completed
                 if i < len(actions):
                     response_text += "Action completed, moving to next...\n"
-            
+
             return response_text
-            
+
         except Exception as e:
             print(f"Error in process_drone_command: {e}")
             return "Error processing command"
-    
+
     def execute_action(self, action_tuple):
         """Add action to queue"""
         self.action_queue.put(action_tuple)
-        
+
     def stop(self):
         """Stop the keyboard control thread"""
         self.running = False
@@ -206,7 +185,7 @@ class DroneController:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         image_path = os.path.join(self.data_dir, f"frame_{timestamp}.jpg")
         cv2.imwrite(image_path, frame)
-        
+
         # Store sample data
         sample = {
             "image_path": image_path,
@@ -216,27 +195,27 @@ class DroneController:
             "timestamp": timestamp
         }
         self.current_episode.append(sample)
-    
+
     def process_spatial_command(self, current_frame, instruction: str):
         """Process command using spatial understanding system"""
         try:
             # Set single mode and get action
             self.action_projector.set_mode("single")
-            actions = self.action_projector.get_gemini_points(current_frame, instruction)
-            
+            actions = self.action_projector.get_vlm_points(current_frame, instruction)
+
             if not actions:
                 return "No valid actions identified"
-            
+
             response_text = f"\n=== SINGLE ACTION MODE ===\n"
-            
+
             action = actions[0]
             if action is None:
                 return "No valid action"
             response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
             self._execute_spatial_action(action, quiet=True)
-            
+
             return response_text
-            
+
         except Exception as e:
             print(f"Error: {e}")
             return "Error processing command"
@@ -244,7 +223,7 @@ class DroneController:
     def _execute_spatial_action(self, action: ActionPoint, quiet: bool = False):
         """Execute a single spatial action"""
         commands = self.action_space.action_to_commands(action)
-        
+
         for cmd, duration in commands:
             if cmd in self.action_map:
                 if not quiet:
@@ -260,7 +239,7 @@ def print_monitor_info():
 
 def capture_screen(monitor_index=1):
     """Capture the simulator screen
-    
+
     Args:
         monitor_index: Index of the monitor to capture (1=main monitor, 0=all monitors)
     """
@@ -270,16 +249,16 @@ def capture_screen(monitor_index=1):
             if monitor_index >= len(sct.monitors):
                 print(f"Warning: Monitor index {monitor_index} out of range. Using main monitor (1).")
                 monitor_index = 1
-                
+
             monitor = sct.monitors[monitor_index]
             screenshot = sct.grab(monitor)
             img = np.array(screenshot)
-            
+
             # Print monitor dimensions every 100 captures (commented out by default)
             # import random
             # if random.random() < 0.01:  # 1% chance to print monitor info
             #     print(f"Monitor {monitor_index} dimensions: {img.shape[1]}x{img.shape[0]}")
-                
+
             return img
     except Exception as e:
         print(f"Error capturing screen: {e}")
@@ -293,34 +272,34 @@ def main():
     # Load config
     with open('config.yaml', 'r') as f:
         config = yaml.safe_load(f)
-    
+
     drone_controller = DroneController()
-    
+
     try:
         # Get initial command from user
         current_command = input("Enter high-level command (e.g., 'navigate through the center of the crane structure'): ")
-        
+
         print("\nStarting control loop in", config['mode'], "mode...")
         print("Press Ctrl+C to exit")
-        
+
         while True:
             # Capture current view
             frame = capture_screen()
-            
+
             # Process command using spatial understanding
             response = drone_controller.process_spatial_command(
-                frame, 
-                current_command, 
+                frame,
+                current_command,
                 mode=config['mode']
             )
             print(f"\nAction Response:\n{response}\n")
-            
+
             # Add configured delay between actions
             time.sleep(config['command_loop_delay'])
-            
+
             # Loop back to get next action from Gemini
             # No asking for completion, just continuous processing
-    
+
     except KeyboardInterrupt:
         print("\nInterrupted by user")
     finally:

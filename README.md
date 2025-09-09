@@ -11,7 +11,7 @@ Control real DJI Tello drones using natural language commands. Choose between tw
 - **Adaptive Mode**: Precision navigation with advanced depth estimation
 - **Obstacle Mode**: Enhanced safety with obstacle detection and avoidance
 
-### 🎮 **Simulator Mode** (Virtual Environment) 
+### 🎮 **Simulator Mode** (Virtual Environment)
 Test and develop navigation algorithms in a simulated environment using screen capture and keyboard controls. Perfect for development and testing without a physical drone.
 
 ## System Architecture
@@ -20,7 +20,7 @@ Test and develop navigation algorithms in a simulated environment using screen c
 VLM Tello Integration System
 ├── Tello Mode (Physical Drone)
 │   ├── 🎯 Adaptive Mode - Precision Navigation
-│   └── 🛡️ Obstacle Mode - Safe Navigation  
+│   └── 🛡️ Obstacle Mode - Safe Navigation
 └── Simulator Mode (Virtual Environment)
 ```
 
@@ -42,11 +42,11 @@ When using **Tello Mode** (physical drone), you can choose between two operation
 - **Recording**: 3fps frame recording
 - **Safety**: Standard error handling
 
-### 🛡️ **Obstacle Mode** (Safe Navigation) 
+### 🛡️ **Obstacle Mode** (Safe Navigation)
 - **Best for**: Complex environments, outdoor navigation, obstacle-rich areas
 - **Features**: Obstacle detection, bounding box visualization, intensive keepalive system
 - **AI Model**: Gemini 2.5 Pro Preview (advanced obstacle recognition)
-- **Recording**: 10fps high-detail recording  
+- **Recording**: 10fps high-detail recording
 - **Safety**: Enhanced timeout protection, automatic safety landing
 
 ### 📋 **Technical Details**
@@ -92,9 +92,14 @@ uv sync
 
 ### Environment Setup (Required for Both Modes)
 
-Create a `.env` file with your Gemini API key:
+Create a `.env` file with your API keys, you only need to setup the provider you plan to use:
 ```env
-GEMINI_API_KEY=your_api_key_here
+# Gemini API
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# OpenAI compatible API
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
 ```
 
 ### Tello Mode Configuration
@@ -102,6 +107,12 @@ GEMINI_API_KEY=your_api_key_here
 Configure your navigation mode in `config_tello.yaml`:
 
 ```yaml
+# Choose between "gemini" or "openai" (OpenAI compatible API)
+api_provider: "gemini"
+
+# Model Selection (optional - leave empty for our experiment defaults)
+model_name: ""  # e.g., "gemini-2.5-pro", "google/gemini-2.5-pro", "openai/gpt-4.1"
+
 # Choose your operational mode
 operational_mode: "adaptive_mode"  # or "obstacle_mode"
 
@@ -111,14 +122,22 @@ command_loop_delay: 2  # seconds between processing cycles
 
 #### Tello Mode Selection Guide
 
-| Mode | Best For | AI Model | Safety Features |
-|------|----------|----------|-----------------|
+| Mode | Best For | Default AI Model | Safety Features |
+|------|----------|------------------|-----------------|
 | `adaptive_mode` | Indoor precision tasks | Gemini 2.0 Flash | Standard error handling |
 | `obstacle_mode` | Complex environments | Gemini 2.5 Pro | Enhanced safety + obstacle detection |
 
 ### Simulator Mode Configuration
 
-Simulator mode uses `config_sim.yaml` (automatically configured - no manual changes needed).
+Configure your API provider in `config_sim.yaml`:
+
+```yaml
+# Choose between "gemini" or "openai" (OpenAI compatible API)
+api_provider: "gemini"
+
+# Model Selection (optional - leave empty for defaults)
+model_name: ""  # e.g., "gemini-2.5-pro", "google/gemini-2.5-pro", "openai/gpt-4.1"
+```
 
 ## Navigation Intelligence
 
@@ -127,7 +146,7 @@ Simulator mode uses `config_sim.yaml` (automatically configured - no manual chan
 - **Non-Linear Movement Speed**: Slow and careful for close objects, fast and efficient for distant ones
 - **Precision Targeting**: Direct targeting with intelligent depth-based movement scaling
 
-### Obstacle Mode Intelligence  
+### Obstacle Mode Intelligence
 - **Obstacle Detection**: AI identifies and maps obstacles with bounding box coordinates
 - **Safe Path Planning**: Considers obstacles when selecting navigation points
 - **Enhanced Safety**: Intensive keepalive system prevents disconnection during processing
@@ -146,7 +165,7 @@ Simulator mode uses `config_sim.yaml` (automatically configured - no manual chan
 python main_tello.py
 ```
 
-#### For Virtual Environment (Simulator Mode)  
+#### For Virtual Environment (Simulator Mode)
 1. **Open** your simulator/game environment
 2. **Run** the simulator:
 
@@ -183,7 +202,7 @@ python main_tello.py --debug
 Best for complex environments with obstacles:
 
 ```yaml
-# config_tello.yaml  
+# config_tello.yaml
 operational_mode: "obstacle_mode"
 command_loop_delay: 2
 ```
@@ -267,7 +286,7 @@ python main_sim.py --monitor 2
 - ✅ Obstacle detection capabilities
 - ✅ Physical depth perception
 
-### Simulator Mode Advantages  
+### Simulator Mode Advantages
 - ✅ No hardware requirements
 - ✅ Safe development environment
 - ✅ Rapid iteration and testing
@@ -300,7 +319,7 @@ Simulator mode sends keyboard commands to your simulator/game environment. The s
 # For indoor precision tasks
 operational_mode: "adaptive_mode"
 
-# For outdoor/complex environments  
+# For outdoor/complex environments
 operational_mode: "obstacle_mode"
 ```
 
@@ -319,7 +338,7 @@ operational_mode: "obstacle_mode"
 - **Depth Estimation**: Ensure good lighting and clear target objects
 - **Movement Precision**: Works best in structured indoor environments
 
-#### Obstacle Mode Troubleshooting  
+#### Obstacle Mode Troubleshooting
 - **Longer Processing**: Normal for enhanced mode (3-8 seconds per command)
 - **Timeout Errors**: System includes 120-second timeout protection
 - **Keepalive Messages**: Normal intensive keepalive logging during API calls
@@ -332,7 +351,7 @@ operational_mode: "obstacle_mode"
 
 ### Safety Features
 - **Automatic Landing**: System lands drone after 3-5 consecutive errors
-- **Manual Override**: Use keyboard controls for immediate safety control  
+- **Manual Override**: Use keyboard controls for immediate safety control
 - **Battery Monitoring**: Obstacle mode includes comprehensive battery warnings
 
 ## Simulator Mode Troubleshooting

@@ -1,6 +1,15 @@
 # Tello Drone Configuration
 # This file controls the operational mode and behavior of the Tello drone system
 
+# API Provider Configuration
+# Choose between "gemini" or "openai" (OpenAI compatible API)
+api_provider: "gemini" # or "openai"
+
+# Model Configuration
+# Specify the exact model name to use (overrides operational_mode defaults)
+# Leave empty to use operational_mode defaults
+model_name: "" # e.g., "gemini-2.5-pro", "google/gemini-2.5-pro", "openai/gpt-4.1"
+
 # Operational Mode Configuration
 # adaptive_mode: Original version with depth estimation and adaptive navigation
 # obstacle_mode: Enhanced version with obstacle detection and intensive keepalive
@@ -8,19 +17,25 @@
 operational_mode: "obstacle_mode"
 
 # Processing Configuration
-command_loop_delay: 2  # Delay in seconds between processing cycles
+command_loop_delay: 2 # Delay in seconds between processing cycles
 
-# Mode Descriptions:
+# API Provider Options:
+#
+# gemini:
+#   - Requires: GEMINI_API_KEY
+#
+# openai:
+#   - Requires: OPENAI_API_KEY, OPENAI_BASE_URL (defaults to OpenRouter)
+#
+# Mode Descriptions (when model_name is empty):
 #
 # adaptive_mode:
-#   - Uses gemini-2.0-flash model
 #   - Advanced depth estimation with non-linear scaling
 #   - Standard frame recording at 3fps
 #   - Basic error handling
 #   - Optimized for precise navigation with depth awareness
 #
 # obstacle_mode:
-#   - Uses gemini-2.5-pro-preview-03-25 model
 #   - Enhanced obstacle detection with bounding boxes
 #   - Intensive keepalive system during API calls
 #   - Enhanced frame recording at 10fps
