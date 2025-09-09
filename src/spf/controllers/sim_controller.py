@@ -7,12 +7,12 @@ import os
 import threading
 import queue
 from collections import deque
-from drone_space_sim import DroneActionSpace, ActionPoint
-from action_projector_sim import ActionProjector
+from ..spaces.drone_space_sim import DroneActionSpaceSim, ActionPoint
+from ..projectors.action_projector_sim import ActionProjectorSim
 from datetime import datetime
-import yaml  # Add this import
+import yaml
 
-class DroneController:
+class SimController:
     def __init__(self):
         self.keyboard = Controller()
         self.action_queue = queue.Queue()
@@ -49,8 +49,8 @@ class DroneController:
         }
 
         # Initialize action space for command conversion
-        self.action_space = DroneActionSpace()
-        self.action_projector = ActionProjector(config_path="config_sim.yaml")
+        self.action_space = DroneActionSpaceSim()
+        self.action_projector = ActionProjectorSim(config_path="config_sim.yaml")
 
         # Add data collection attributes
         self.data_dir = "drone_training_data"

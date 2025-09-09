@@ -162,7 +162,7 @@ model_name: ""  # e.g., "gemini-2.5-pro", "google/gemini-2.5-pro", "openai/gpt-4
 3. **Run** the system:
 
 ```bash
-python main_tello.py
+spf tello
 ```
 
 #### For Virtual Environment (Simulator Mode)
@@ -170,7 +170,7 @@ python main_tello.py
 2. **Run** the simulator:
 
 ```bash
-python main_sim.py
+spf sim
 ```
 3. **Switch** to your simulator window when prompted
 
@@ -187,10 +187,10 @@ command_loop_delay: 2
 
 ```bash
 # Standard precision flight
-python main_tello.py
+spf tello
 
 # With debug visualization
-python main_tello.py --debug
+spf tello --debug
 ```
 
 **Example Commands:**
@@ -209,10 +209,10 @@ command_loop_delay: 2
 
 ```bash
 # Safe obstacle-aware flight
-python main_tello.py
+spf tello
 
 # With enhanced recording
-python main_tello.py --record --record-session "outdoor_flight"
+spf tello --record --record-session "outdoor_flight"
 ```
 
 **Example Commands:**
@@ -224,16 +224,16 @@ python main_tello.py --record --record-session "outdoor_flight"
 
 ```bash
 # Test mode (static image)
-python main_tello.py --test
+spf tello --test
 
 # Debug mode (live camera feed + detailed logging)
-python main_tello.py --debug
+spf tello --debug
 
 # Skip camera check (if camera issues)
-python main_tello.py --skip-camera-check
+spf tello --skip-camera-check
 
 # Record flight with custom session name
-python main_tello.py --record --record-session "my_flight"
+spf tello --record --record-session "my_flight"
 ```
 
 ## Simulator Mode Usage
@@ -243,22 +243,22 @@ Perfect for development, testing, and learning without a physical drone:
 
 ```bash
 # Standard simulator mode
-python main_sim.py
+spf sim
 
 # Debug mode with coordinate system visualization
-python main_sim.py --debug
+spf sim --debug
 
 # Test mode with static image
-python main_sim.py --test
+spf sim --test
 
 # Specify monitor for screen capture (default is monitor 1)
-python main_sim.py --monitor 2
+spf sim --monitor 2
 ```
 
 ### Simulator Mode Setup
 1. **Open your simulator/game environment** (any visual environment you want the virtual drone to navigate)
 2. **Configure display**: The system captures your screen to understand the environment
-3. **Run simulator**: `python main_sim.py`
+3. **Run simulator**: `spf sim`
 4. **Switch windows**: After starting, quickly switch to your simulator window
 5. **Give commands**: Enter natural language navigation commands
 
@@ -367,5 +367,5 @@ operational_mode: "obstacle_mode"
 - **Keyboard Not Working**: Check that simulator window has focus after giving commands
 
 ### Setup Issues
-- **Monitor Info**: Use `python main_sim.py --info` to see available monitors
+- **Monitor Info**: Use `spf sim --info` to see available monitors
 - **Debug Mode**: Use `--debug` to visualize coordinate system and verify setup

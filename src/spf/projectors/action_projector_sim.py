@@ -1,14 +1,14 @@
 import cv2
 import numpy as np
-from drone_space_sim import DroneActionSpace, ActionPoint
+from ..spaces.drone_space_sim import DroneActionSpaceSim, ActionPoint
 from typing import List, Tuple
-from vlm_client import VLMClient
+from ..clients.vlm_client import VLMClient
 import os
 import time
 import json
 import yaml
 
-class ActionProjector:
+class ActionProjectorSim:
     """
     Handles projection between 2D screen coordinates and 3D world space
     Maintains camera model and provides methods for point projection
@@ -44,7 +44,7 @@ class ActionProjector:
         self.focal_length = self.image_width / (2 * np.tan(np.radians(self.fov_horizontal/2)))
 
         # Initialize action space
-        self.action_space = DroneActionSpace(n_samples=8)
+        self.action_space = DroneActionSpaceSim(n_samples=8)
 
         # Load configuration
         with open(config_path, 'r') as f:

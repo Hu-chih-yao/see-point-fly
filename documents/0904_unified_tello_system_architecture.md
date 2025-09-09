@@ -14,7 +14,7 @@
 
 ## System Overview
 
-The VLM Tello Integration System consists of two independent drone navigation platforms:
+The SPF (See, Point, Fly) System consists of two independent drone navigation platforms:
 
 1. **Tello Mode**: Controls physical DJI Tello drones with two operational modes (Adaptive and Obstacle)
 2. **Simulator Mode**: Provides virtual drone simulation for development and testing
@@ -24,19 +24,29 @@ Each mode has its own entry point, controller, and supporting components, allowi
 ### High-Level Architecture
 
 ```
-VLM Tello Integration System
+SPF (See, Point, Fly) System Architecture
+├── Entry Point: `spf` command
+│   └── Main Router: src/spf/main.py
 ├── Tello Mode (Physical Drone)
-│   ├── Entry Point: main_tello.py
+│   ├── Entry: `spf tello`
+│   ├── Main Module: src/spf/tello_main.py
 │   ├── Operational Modes:
 │   │   ├── adaptive_mode (Precision Navigation)
 │   │   └── obstacle_mode (Safe Navigation)
-│   └── Components: action_projector.py, tello_controller.py, 
-│       drone_space.py, config_tello.yaml
+│   └── Core Components:
+│       ├── Controller: src/spf/controllers/tello_controller.py
+│       ├── Projector: src/spf/projectors/action_projector.py
+│       ├── Space: src/spf/spaces/drone_space.py
+│       └── Client: src/spf/clients/vlm_client.py
 └── Simulator Mode (Virtual Environment)
-    ├── Entry Point: main_sim.py
+    ├── Entry: `spf sim`
+    ├── Main Module: src/spf/simulator_main.py
     ├── Single Operation Mode
-    └── Components: action_projector_sim.py, drone_controller_sim.py,
-        drone_space_sim.py, config_sim.yaml
+    └── Core Components:
+        ├── Controller: src/spf/controllers/sim_controller.py
+        ├── Projector: src/spf/projectors/action_projector_sim.py
+        ├── Space: src/spf/spaces/drone_space_sim.py
+        └── Client: src/spf/clients/vlm_client.py
 ```
 
 ## Architecture Design
@@ -44,19 +54,21 @@ VLM Tello Integration System
 ### File Organization
 
 #### Tello Mode Files
-- **Entry Point**: `main_tello.py`
-- **Core Components**: 
-  - `tello_controller.py` - Physical drone control and communication
-  - `action_projector.py` - 2D/3D projection and Gemini integration
-  - `drone_space.py` - Action space and command conversion
+- **Entry Point**: `spf tello` command (via `src/spf/main.py`)
+- **Main Module**: `src/spf/tello_main.py`
+- **Core Components**:
+  - `src/spf/controllers/tello_controller.py` - Physical drone control and communication
+  - `src/spf/projectors/action_projector.py` - 2D/3D projection and Gemini integration
+  - `src/spf/spaces/drone_space.py` - Action space and command conversion
 - **Configuration**: `config_tello.yaml`
 
-#### Simulator Mode Files  
-- **Entry Point**: `main_sim.py`
+#### Simulator Mode Files
+- **Entry Point**: `spf sim` command (via `src/spf/main.py`)
+- **Main Module**: `src/spf/simulator_main.py`
 - **Core Components**:
-  - `drone_controller_sim.py` - Virtual drone control via keyboard simulation
-  - `action_projector_sim.py` - Screen-based projection and Gemini integration  
-  - `drone_space_sim.py` - Simulator-specific action space
+  - `src/spf/controllers/sim_controller.py` - Virtual drone control via keyboard simulation
+  - `src/spf/projectors/action_projector_sim.py` - Screen-based projection and Gemini integration
+  - `src/spf/spaces/drone_space_sim.py` - Simulator-specific action space
 - **Configuration**: `config_sim.yaml`
 
 ### Core Design Principles
@@ -70,43 +82,64 @@ VLM Tello Integration System
 
 #### Tello Mode Architecture
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                 Tello Entry Point                           │
-│                 (main_tello.py)                            │
-└─────────────────────┬───────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│                    SPF Command                  │
+│                   (spf tello)                   │
+└─────────────────────┬───────────────────────────┘
                       │
     ┌─────────────────▼─────────────────┐
-    │           TelloController         │
-    │         (tello_controller.py)     │
+    │              Main Entry           │
+    │          (src/spf/main.py)        │
     └─────────────────┬─────────────────┘
+                      │
+    ┌─────────────────▼─────────────────┐
+    │            Tello Main             │
+    │       (src/spf/tello_main.py)     │
+    └─────────────────┬─────────────────┘
+                      │
+    ┌─────────────────▼─────────────────────────┐
+    │           TelloController                 │
+    │ (src/spf/controllers/tello_controller.py) │
+    └─────────────────┬─────────────────────────┘
                       │
           ┌───────────┼───────────┐
           │           │           │
     ┌─────▼─────┐ ┌───▼────┐ ┌───▼─────┐
-    │  Action   │ │ Drone  │ │ Config  │
-    │ Projector │ │ Space  │ │  Tello  │
-    │   .py     │ │  .py   │ │  .yaml  │
+    │  Action   │ │ Drone  │ │ VLM     │
+    │ Projector │ │ Space  │ │ Client  │
+    │projectors/│ │spaces/ │ │clients/ │
     └───────────┘ └────────┘ └─────────┘
 ```
 
-#### Simulator Mode Architecture  
+#### Simulator Mode Architecture
 ```
-┌─────────────────────────────────────────────────────────────┐
-│               Simulator Entry Point                         │
-│                 (main_sim.py)                              │
-└─────────────────────┬───────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│                    SPF Command                  │
+│                    (spf sim)                    │
+└─────────────────────┬───────────────────────────┘
                       │
     ┌─────────────────▼─────────────────┐
-    │        DroneController           │
-    │     (drone_controller_sim.py)     │
+    │              Main Entry           │
+    │          (src/spf/main.py)        │
     └─────────────────┬─────────────────┘
+                      │
+    ┌─────────────────▼─────────────────┐
+    │          Simulator Main           │
+    │     (src/spf/simulator_main.py)   │
+    └─────────────────┬─────────────────┘
+                      │
+    ┌─────────────────▼───────────────────────┐
+    │            SimController                │
+    │ (src/spf/controllers/sim_controller.py) │
+    └─────────────────┬───────────────────────┘
                       │
           ┌───────────┼───────────┐
           │           │           │
     ┌─────▼─────┐ ┌───▼────┐ ┌───▼─────┐
-    │  Action   │ │ Drone  │ │ Config  │
-    │Projector  │ │ Space  │ │   Sim   │
-    │ _sim.py   │ │_sim.py │ │ .yaml   │
+    │ Action    │ │ Drone  │ │ VLM     │
+    │Projector  │ │ Space  │ │ Client  │
+    │ Sim       │ │ Sim    │ │clients/ │
+    │projectors/│ │spaces/ │ │         │
     └───────────┘ └────────┘ └─────────┘
 ```
 
@@ -176,7 +209,7 @@ Prompt_Strategy: Obstacle-aware navigation
 
 **Initialization Signature**:
 ```python
-def __init__(self, 
+def __init__(self,
              image_width=960,
              image_height=720,
              camera_matrix=None,
@@ -255,54 +288,63 @@ class ActionPoint:
 
 #### Adaptive Mode Data Flow (Tello)
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│ Tello Camera│───▶│   Frame      │───▶│    Gemini       │
-│   Capture   │    │ Processing   │    │   2.0 Flash     │
-│(tello_controller)│ (main_tello) │    │(action_projector)│
-└─────────────┘    └──────────────┘    └─────────┬───────┘
-                                                 │
-┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
-│   Drone     │◀───│   3D Point   │◀───│ Depth Estimation│
-│  Commands   │    │ Projection   │    │   JSON Parse    │
-│(tello_controller)│(action_projector)│ │(action_projector)│
-└─────────────┘    └──────────────┘    └─────────────────┘
+ ┌─────────────────┐    ┌───────────────┐    ┌──────────────────┐
+ │ Tello Camera    │───▶│   Frame       │───▶│    Gemini        │
+ │   Capture       │    │ Processing    │    │   2.0 Flash      │
+ │(controllers/    │    │(tello_main.py)│    │ (projectors/     │
+ │tello_controller)│    │               │    │action_projector) │
+ └─────────────────┘    └───────────────┘    └──────────┬───────┘
+                                                        │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────▼─────────┐
+│   Drone         │◀───│   3D Point      │◀───│ Depth Estimation  │
+│  Commands       │    │ Projection      │    │   JSON Parse      │
+│(controllers/    │    │ (projectors/    │    │ (projectors/      │
+│tello_controller)│    │action_projector)│    │action_projector)  │
+└─────────────────┘    └─────────────────┘    └───────────────────┘
 ```
 
 #### Obstacle Mode Data Flow (Tello)
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│ Tello Camera│───▶│   Frame      │───▶│  Keepalive      │
-│   Capture   │    │ Processing   │    │  Activation     │
-│(tello_controller)│ (main_tello) │    │(tello_controller)│
-└─────────────┘    └──────────────┘    └─────────┬───────┘
-                                                 │
-┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
-│   Safety    │◀───│   Obstacle   │◀───│   Gemini        │
-│  Navigation │    │  Detection   │    │ 2.5 Pro Preview│
-│(tello_controller)│(action_projector)│ │(action_projector)│
-└─────────────┘    └──────────────┘    └─────────┬───────┘
-                                                 │
-┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
-│  Keepalive  │    │   Drone      │    │  Timeout &      │
-│Deactivation │    │  Commands    │    │ Error Handling  │
-│(tello_controller)│(tello_controller)│ │  (main_tello)   │
-└─────────────┘    └──────────────┘    └─────────────────┘
+  ┌─────────────────┐    ┌───────────────┐    ┌─────────────────┐
+  │ Tello Camera    │───▶│   Frame       │───▶│  Keepalive      │
+  │   Capture       │    │ Processing    │    │  Activation     │
+  │(controllers/    │    │(tello_main.py)│    │(controllers/    │
+  │tello_controller)│    │               │    │tello_controller)│
+  └─────────────────┘    └───────────────┘    └─────────┬───────┘
+                                                        │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────▼───────┐
+│   Safety        │◀───│   Obstacle      │◀───│   Gemini        │
+│  Navigation     │    │  Detection      │    │ 2.5 Pro Preview │
+│(controllers/    │    │ (projectors/    │    │ (projectors/    │
+│tello_controller)│    │action_projector)│    │action_projector)│
+└─────────────────┘    └─────────────────┘    └─────────┬───────┘
+                                                        │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────▼───────┐
+│  Keepalive      │    │   Drone         │    │  Timeout &      │
+│Deactivation     │    │  Commands       │    │ Error Handling  │
+│(controllers/    │    │(controllers/    │    │(tello_main.py)  │
+│tello_controller)│    │tello_controller)│    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ### Simulator Mode Data Flow
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Screen    │───▶│   Frame      │───▶│    Gemini       │
-│  Capture    │    │ Processing   │    │ 2.5 Pro Preview│
-│(drone_controller)│  (main_sim)  │    │(action_projector)│
-└─────────────┘    └──────────────┘    └─────────┬───────┘
-                                                 │
-┌─────────────┐    ┌──────────────┐    ┌─────────▼───────┐
-│  Keyboard   │◀───│   Action     │◀───│   Obstacle      │
-│  Commands   │    │ Conversion   │    │  Detection      │
-│(drone_controller)│(drone_space_sim)│ │(action_projector)│
-└─────────────┘    └──────────────┘    └─────────────────┘
+  ┌───────────────┐    ┌──────────────┐    ┌─────────────────┐
+  │   Screen      │───▶│   Frame      │───▶│    Gemini       │
+  │  Capture      │    │ Processing   │    │ 2.5 Pro Preview │
+  │(controllers/  │    │(simulator_   │    │ (projectors/    │
+  │sim_controller)│    │  main.py)    │    │action_projector_│
+  └───────────────┘    └──────────────┘    │      sim)       │
+                                           └─────────┬───────┘
+                                                     │
+┌───────────────┐    ┌────────────────┐    ┌─────────▼───────┐
+│  Keyboard     │◀───│   Action       │◀───│   Obstacle      │
+│  Commands     │    │ Conversion     │    │  Detection      │
+│(controllers/  │    │  (spaces/      │    │ (projectors/    │
+│sim_controller)│    │drone_space_sim)│    │action_projector_│
+└───────────────┘    └────────────────┘    │      sim)       │
+                                           └─────────────────┘
 ```
 
 ## Configuration System
@@ -315,7 +357,7 @@ class ActionPoint:
 # Operational Mode Configuration
 operational_mode: "adaptive_mode"  # or "obstacle_mode"
 
-# Processing Configuration  
+# Processing Configuration
 command_loop_delay: 2  # seconds between processing cycles
 
 # Advanced Configuration (mode-specific)
@@ -324,7 +366,7 @@ command_loop_delay: 2  # seconds between processing cycles
 
 #### Configuration Loading Pipeline
 
-1. **Main Controller** (`main_tello.py`) loads `config_tello.yaml`
+1. **Main Controller** (`spf tello` command) loads `config_tello.yaml`
 2. **Mode Detection** from `operational_mode` parameter
 3. **Component Initialization** with mode-specific parameters
 4. **Runtime Behavior** adaptation based on mode
@@ -343,7 +385,7 @@ command_loop_delay: 0  # seconds between processing cycles
 
 #### Configuration Loading Pipeline
 
-1. **Main Controller** (`main_sim.py`) loads `config_sim.yaml`
+1. **Main Controller** (`spf sim` command) loads `config_sim.yaml`
 2. **Standard Initialization** with simulator-specific parameters
 3. **Runtime Behavior** optimized for virtual environment
 
@@ -357,49 +399,49 @@ GEMINI_API_KEY=your_api_key_here
 
 ### Tello Mode APIs
 
-#### ActionProjector API (`action_projector.py`)
+#### ActionProjector API (`src/spf/projectors/action_projector.py`)
 
 ```python
 class ActionProjector:
     def __init__(self, mode="adaptive_mode"):
         """Initialize with operational mode (adaptive_mode/obstacle_mode)"""
-        
-    def get_gemini_points(self, 
-                         image: np.ndarray, 
-                         instruction: str, 
+
+    def get_gemini_points(self,
+                         image: np.ndarray,
+                         instruction: str,
                          tello_controller=None) -> List[ActionPoint]:
         """
         Main processing method that handles both operational modes
-        
+
         Args:
             image: Input camera frame from Tello
             instruction: Natural language command
             tello_controller: Controller reference for keepalive (obstacle_mode)
-            
+
         Returns:
             List containing single ActionPoint with mode-specific processing
         """
 ```
 
-#### TelloController API (`tello_controller.py`)
+#### TelloController API (`src/spf/controllers/tello_controller.py`)
 
 ```python
 class TelloController:
     def __init__(self, mode="adaptive_mode"):
         """Initialize with operational mode"""
-        
-    def process_spatial_command(self, 
+
+    def process_spatial_command(self,
                                current_frame: np.ndarray,
-                               instruction: str, 
+                               instruction: str,
                                mode: str = "single") -> str:
         """
         Process spatial command with mode-specific handling
-        
+
         Args:
             current_frame: Camera frame from Tello
             instruction: Natural language instruction
             mode: Processing mode (always "single" in current implementation)
-            
+
         Returns:
             String description of executed action
         """
@@ -407,42 +449,42 @@ class TelloController:
 
 ### Simulator Mode APIs
 
-#### ActionProjector API (`action_projector_sim.py`)
+#### ActionProjectorSim API (`src/spf/projectors/action_projector_sim.py`)
 
 ```python
 class ActionProjector:
     def __init__(self, image_width=3420, image_height=2214):
         """Initialize for simulator screen resolution"""
-        
-    def get_gemini_points(self, 
-                         image: np.ndarray, 
+
+    def get_gemini_points(self,
+                         image: np.ndarray,
                          instruction: str) -> List[ActionPoint]:
         """
         Process screen capture for simulator navigation
-        
+
         Args:
             image: Screen capture frame
             instruction: Natural language command
-            
+
         Returns:
             List containing single ActionPoint with obstacle detection
         """
 ```
 
-#### DroneController API (`drone_controller_sim.py`)
+#### SimController API (`src/spf/controllers/sim_controller.py`)
 
 ```python
-class DroneController:
-    def process_spatial_command(self, 
+class SimController:
+    def process_spatial_command(self,
                                current_frame: np.ndarray,
                                instruction: str) -> str:
         """
         Process spatial command for virtual drone
-        
+
         Args:
             current_frame: Screen capture frame
             instruction: Natural language instruction
-            
+
         Returns:
             String description of keyboard commands executed
         """
@@ -483,7 +525,7 @@ class DroneController:
 - **Storage**: 2GB free space for frame storage (10fps recording in obstacle_mode)
 - **Hardware**: DJI Tello drone with charged battery
 
-#### Simulator Mode Requirements  
+#### Simulator Mode Requirements
 - **CPU**: Multi-core processor (2+ cores minimum)
 - **RAM**: 2GB minimum, 4GB recommended
 - **Network**: Internet connection for Gemini API

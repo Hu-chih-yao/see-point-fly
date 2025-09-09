@@ -1019,7 +1019,7 @@ wheels = [
 [[package]]
 name = "see-point-fly"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "djitellopy" },
     { name = "google-generativeai" },

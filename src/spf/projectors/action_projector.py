@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
-from drone_space import DroneActionSpace, ActionPoint
+from ..spaces.drone_space import DroneActionSpace, ActionPoint
 from typing import List, Tuple
-from vlm_client import VLMClient
+from ..clients.vlm_client import VLMClient
 import os
 import time
 import json

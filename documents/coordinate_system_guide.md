@@ -213,7 +213,7 @@ When projection issues occur, follow these steps:
 
 4. Visualize the coordinate system:
    ```bash
-   python main.py --debug
+   spf sim --debug
    ```
 
 ## Performance Considerations

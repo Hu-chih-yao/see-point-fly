@@ -6,10 +6,10 @@ import os
 import threading
 import queue
 from collections import deque
-from drone_space import DroneActionSpace, ActionPoint
-from action_projector import ActionProjector
+from ..spaces.drone_space import DroneActionSpace, ActionPoint
+from ..projectors.action_projector import ActionProjector
 from datetime import datetime
-from djitellopy import Tello  # Import Tello
+from djitellopy import Tello
 
 class FrameRecorder:
     """
