@@ -13,8 +13,8 @@ model_name: "" # e.g., "gemini-2.5-pro", "google/gemini-2.5-pro", "openai/gpt-4.
 # Operational Mode Configuration
 # adaptive_mode: Original version with depth estimation and adaptive navigation
 # obstacle_mode: Enhanced version with obstacle detection and intensive keepalive
-# operational_mode: "adaptive_mode"  # Change to "obstacle_mode" for enhanced obstacle detection
-operational_mode: "obstacle_mode"
+operational_mode: "adaptive_mode" # Change to "obstacle_mode" for enhanced obstacle detection
+#operational_mode: "obstacle_mode"
 
 # Processing Configuration
 command_loop_delay: 2 # Delay in seconds between processing cycles

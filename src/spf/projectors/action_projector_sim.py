@@ -19,6 +19,7 @@ class ActionProjectorSim:
                  image_height=2214,
                  camera_matrix=None,
                  dist_coeffs=None,
+                 adaptive_mode=True,
                  config_path="config_sim.yaml"):
         """
         Initialize the projector with image dimensions and optional camera parameters
@@ -28,6 +29,7 @@ class ActionProjectorSim:
             image_height (int): Height of the input image (default: match monitor 1)
             camera_matrix (np.ndarray): Optional 3x3 camera matrix
             dist_coeffs (np.ndarray): Optional distortion coefficients
+            adaptive_mode (bool): Enable adaptive depth-based movement scaling
             config_path (str): Path to configuration file
         """
         self.image_width = image_width
@@ -45,6 +47,9 @@ class ActionProjectorSim:
 
         # Initialize action space
         self.action_space = DroneActionSpaceSim(n_samples=8)
+
+        # Store adaptive mode setting
+        self.adaptive_mode = adaptive_mode
 
         # Load configuration
         with open(config_path, 'r') as f:
@@ -136,6 +141,31 @@ class ActionProjectorSim:
 
         return (x, y, z)
 
+    def calculate_adjusted_depth(self, vlm_depth):
+        """
+        Custom depth adjustment with specific rules:
+        - Depth 1: Set to 0 (no movement)
+        - Depth 2-4: Set to 4 (moderate movement)
+        - Depth 5+: Non-linear scaling for efficiency
+
+        Args:
+            vlm_depth: Depth value from VLM (1-10 scale)
+
+        Returns:
+            adjusted_depth: Custom scaled depth value
+        """
+        if vlm_depth <= 3:
+            # Very close objects - no movement
+            adjusted_depth = 0
+            print(f"Simulator: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth} (No movement - too close)")
+        else:  # vlm_depth >= 3
+            # Far objects - non-linear scaling for efficiency
+            base = (vlm_depth / 10.0)**2.4 * 5
+            adjusted_depth = base
+            print(f"Simulator: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth:.2f} (Non-linear scaling)")
+
+        return adjusted_depth
+
     def set_mode(self, mode: str):
         """Set operation mode: only 'single' supported"""
         if mode != "single":
@@ -204,7 +234,7 @@ class ActionProjectorSim:
 
                 # Add action and obstacle data
                 for action in actions:
-                    action_data = {
+                    action_data: dict = {
                         "dx": action.dx,
                         "dy": action.dy,
                         "dz": action.dz,
@@ -232,36 +262,59 @@ class ActionProjectorSim:
     def _get_single_action(self, image: np.ndarray, instruction: str) -> ActionPoint:
         """Get single next best action"""
 
+        # Create mode-specific prompts
+        if self.adaptive_mode:
+            prompt = f"""You are a drone navigation expert analyzing a simulator camera view.
 
-        prompt = f"""You are a drone navigation expert analyzing a drone camera view.
+Task: {instruction}
 
-            Task: {instruction}
+First, identify ALL objects in the image that match the description "{instruction}".
+Then, select the MOST RELEVANT target object and place a single point DIRECTLY ON that object.
 
-            main task:
-            1. Identify objects in the image that match the description "{instruction}".
-            2. Then, select the MOST RELEVANT target object and place a "target point" DIRECTLY ON that object.
-            sub task:
-            3. Identify obstacles in the path, if necessary, "slighty" adjust the point.
+Return in this exact JSON format:
+[{{"point": [y, x], "depth": depth_value, "label": "action description"}}]
 
-            Return in this exact JSON format:
-            {{
-                "point": [y, x],
-                "label": "action description",
-                "obstacles": [
-                    {{"bounding_box": [ymin, xmin, ymax, xmax], "label": "obstacle_description"}}
-                ]
-            }}
+Coordinate system:
+- x: 0-1000 scale (500=center, >500=right, <500=left)
+- y: 0-1000 scale (lower values=higher in image/sky)
+- depth: 1-10 scale where:
+    * 1: Object is very close/large in frame
+    * 10: Object is far away/small in frame
 
-            Coordinate system:
-            - x: 0-1000 scale (500=center, >500=right, <500=left)
-            - y: 0-1000 scale (lower values=higher in image/sky)
+IMPORTANT:
+- Place the point PRECISELY on the center of the target object
+- Choose the largest/closest matching object if multiple exist
+- Assess the depth based on how much of the frame the object occupies
+- Your accuracy in point placement and depth estimation is critical for adaptive navigation"""
+        else:
+            prompt = f"""You are a drone navigation expert analyzing a simulator camera view.
 
-            Notes:
-            - "Pointing on the target" is the most important thing.
-            - Prioritize the closest/largest matching object if multiple exist
-            - Consider immediate obstacles and choose a safe path.
-            - Aim for target's center.
-            """
+Task: {instruction}
+
+main task:
+1. Identify objects in the image that match the description "{instruction}".
+2. Then, select the MOST RELEVANT target object and place a "target point" DIRECTLY ON that object.
+sub task:
+3. Identify obstacles in the path, if necessary, "slighty" adjust the point.
+
+Return in this exact JSON format:
+{{
+    "point": [y, x],
+    "label": "action description",
+    "obstacles": [
+        {{"bounding_box": [ymin, xmin, ymax, xmax], "label": "obstacle_description"}}
+    ]
+}}
+
+Coordinate system:
+- x: 0-1000 scale (500=center, >500=right, <500=left)
+- y: 0-1000 scale (lower values=higher in image/sky)
+
+Notes:
+- "Pointing on the target" is the most important thing.
+- Prioritize the closest/largest matching object if multiple exist
+- Consider immediate obstacles and choose a safe path.
+- Aim for target's center."""
 
         '''
         Requirements:
@@ -281,60 +334,112 @@ class ActionProjectorSim:
             print(f"\n{self.api_provider.upper()} Response:")
             print(response_text)
 
-            # Parse JSON response
-            response_data = json.loads(response_text)
-            if not response_data:
-                raise ValueError("No data returned from API")
+            # Mode-specific JSON parsing
+            if self.adaptive_mode:
+                # Adaptive mode - parse depth-based response
+                points_data = json.loads(response_text)
+                if not points_data:
+                    raise ValueError("No points returned from VLM")
 
-            # Get waypoint coordinates
-            y, x = response_data['point']
-            pixel_x = int((x / 1000.0) * self.image_width)
-            pixel_y = int((y / 1000.0) * self.image_height)
+                # Take first (and should be only) point
+                point_info = points_data[0]
 
-            # Project 2D point to 3D
-            x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y))
+                # Convert normalized coordinates to pixel coordinates
+                y, x = point_info['point']
+                pixel_x = int((x / 1000.0) * self.image_width)
+                pixel_y = int((y / 1000.0) * self.image_height)
 
-            # Create ActionPoint
-            action = ActionPoint(
-                dx=x3d, dy=y3d, dz=z3d,
-                action_type="move",
-                screen_x=pixel_x,
-                screen_y=pixel_y
-            )
+                # Get depth from VLM's response (default to 4 if not provided)
+                vlm_depth = point_info.get('depth', 4)
 
-            # Add obstacles if present
-            if 'obstacles' in response_data:
-                obstacles = []
-                for obstacle in response_data['obstacles']:
-                    if 'bounding_box' in obstacle:
-                        ymin, xmin, ymax, xmax = obstacle['bounding_box']
-                        # Convert to pixel coordinates if normalized
-                        if max(obstacle['bounding_box']) <= 1000:
-                            xmin = int((xmin / 1000.0) * self.image_width)
-                            ymin = int((ymin / 1000.0) * self.image_height)
-                            xmax = int((xmax / 1000.0) * self.image_width)
-                            ymax = int((ymax / 1000.0) * self.image_height)
-                        obstacle['bounding_box'] = [ymin, xmin, ymax, xmax]
-                    obstacles.append(obstacle)
-                action.detected_obstacles = obstacles
+                # Use the adaptive depth adjustment
+                adjusted_depth = self.calculate_adjusted_depth(vlm_depth)
 
-            print(f"\nIdentified single action: {response_data.get('label', 'move')}")
-            print(f"2D Normalized: ({x}, {y})")
-            print(f"2D Pixels: ({pixel_x}, {pixel_y})")
-            print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
-            if action.detected_obstacles:
-                print(f"Detected {len(action.detected_obstacles)} obstacles")
+                # Project 2D point to 3D with adaptive depth
+                x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y), depth=adjusted_depth)
 
-            return action
+                # Create ActionPoint with adaptive depth info
+                action = ActionPoint(
+                    dx=x3d, dy=y3d, dz=z3d,
+                    action_type="move",
+                    screen_x=pixel_x,
+                    screen_y=pixel_y
+                )
+
+                # Store depth info for action space
+                action.adaptive_depth = adjusted_depth
+                action.vlm_depth = vlm_depth
+
+                print(f"\n[ADAPTIVE] Identified single action: {point_info['label']}")
+                print(f"2D Normalized: ({x}, {y})")
+                print(f"2D Pixels: ({pixel_x}, {pixel_y})")
+                print(f"Depth estimation: {vlm_depth}/10 (adjusted to {adjusted_depth:.2f})")
+                print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
+
+                return action
+            else:
+                # Obstacle mode - parse obstacle-based response
+                response_data = json.loads(response_text)
+                if not response_data:
+                    raise ValueError("No data returned from VLM")
+
+                # Get waypoint coordinates
+                y, x = response_data['point']
+                pixel_x = int((x / 1000.0) * self.image_width)
+                pixel_y = int((y / 1000.0) * self.image_height)
+
+                # Project 2D point to 3D with default depth
+                x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y))
+
+                # Create ActionPoint
+                action = ActionPoint(
+                    dx=x3d, dy=y3d, dz=z3d,
+                    action_type="move",
+                    screen_x=pixel_x,
+                    screen_y=pixel_y
+                )
+
+                # Add obstacles if present
+                if 'obstacles' in response_data:
+                    obstacles = []
+                    for obstacle in response_data['obstacles']:
+                        if 'bounding_box' in obstacle:
+                            ymin, xmin, ymax, xmax = obstacle['bounding_box']
+                            # Convert to pixel coordinates if normalized
+                            if max(obstacle['bounding_box']) <= 1000:
+                                xmin = int((xmin / 1000.0) * self.image_width)
+                                ymin = int((ymin / 1000.0) * self.image_height)
+                                xmax = int((xmax / 1000.0) * self.image_width)
+                                ymax = int((ymax / 1000.0) * self.image_height)
+                            obstacle['bounding_box'] = [ymin, xmin, ymax, xmax]
+                        obstacles.append(obstacle)
+                    action.detected_obstacles = obstacles
+
+                print(f"\nIdentified single action: {response_data.get('label', 'move')}")
+                print(f"2D Normalized: ({x}, {y})")
+                print(f"2D Pixels: ({pixel_x}, {pixel_y})")
+                print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
+                if action.detected_obstacles:
+                    print(f"Detected {len(action.detected_obstacles)} obstacles")
+
+                return action
 
         except Exception as e:
             print(f"Error in single action mode: {e}")
             print("Full response:")
             if 'response_text' in locals():
                 print(response_text)
-            return None
+            else:
+                print("No response received")
+            # Return a default action instead of None
+            return ActionPoint(
+                dx=0.0, dy=0.0, dz=0.0,
+                action_type="move",
+                screen_x=self.image_width // 2,
+                screen_y=self.image_height // 2
+            )
 
-    def visualize_coordinate_system(self, image: np.ndarray = None) -> np.ndarray:
+    def visualize_coordinate_system(self, image: np.ndarray | None = None) -> np.ndarray:
         """Create a visualization of the coordinate system for debugging"""
         if image is None:
             # Create blank image

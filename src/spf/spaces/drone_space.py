@@ -1,6 +1,6 @@
 import math
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 @dataclass
 class ActionPoint:
@@ -11,10 +11,14 @@ class ActionPoint:
     action_type: str
     screen_x: float = 0.0  # 2D projected coordinates for visualization
     screen_y: float = 0.0
-    detected_obstacles: list = None  # Store detected obstacles (obstacle_mode only)
+    detected_obstacles: Optional[list] = None  # Store detected obstacles (obstacle_mode only)
+    yaw_only: bool = False  # Flag for yaw-only movement (when object is too close)
 
     def __str__(self):
-        return f"Action({self.action_type}): Move({self.dx:.1f}, {self.dy:.1f}, {self.dz:.1f})"
+        if self.yaw_only:
+            return f"Action({self.action_type}): YAW ONLY - Object too close ({self.dx:.1f}, {self.dy:.1f}, {self.dz:.1f})"
+        else:
+            return f"Action({self.action_type}): Move({self.dx:.1f}, {self.dy:.1f}, {self.dz:.1f})"
 
 class DroneActionSpace:
     def __init__(self, n_samples: int = 8):
@@ -26,7 +30,8 @@ class DroneActionSpace:
         # Add state tracking
         self.current_position = [0.0, 0.0, 0.0]  # [x, y, z]
         self.current_yaw = 0.0  # degrees
-        self.rotate_time = 3750 #time to rotate 360 degree (7500->50, 4166->90, 3750->100)
+        #self.rotate_time = 3750 #time to rotate 360 degree (7500->50, 4166->90, 3750->100)
+        self.rotate_time = 3400 #time to rotate 360 degree (7500->50, 4166->90, 3750->100)
         self.move_time = 500 #time to move 1 unit (1000->50, 555->90, 500->100)
 
 
@@ -34,6 +39,30 @@ class DroneActionSpace:
         """Convert a relative movement action into drone commands"""
         commands = []
 
+        # Check if this is a yaw-only action (object too close)
+        if hasattr(action, 'yaw_only') and action.yaw_only:
+            print("[SAFETY] Object too close - YAW ONLY mode activated")
+
+            # Only generate yaw commands, no forward/backward or up/down movement
+            target_angle = math.degrees(math.atan2(action.dx, action.dy)) % 360
+
+            if abs(action.dx) > 0.01 or abs(action.dy) > 0.01:
+                if target_angle > 180:
+                    yaw_duration = int(abs(360 - target_angle) * (self.rotate_time/360))
+                    commands.append(('yaw_left', yaw_duration))
+                    print(f"[YAW ONLY] Yaw left {abs(360 - target_angle):.1f}° ({yaw_duration}ms)")
+                else:
+                    yaw_duration = int(target_angle * (self.rotate_time/360))
+                    commands.append(('yaw_right', yaw_duration))
+                    print(f"[YAW ONLY] Yaw right {target_angle:.1f}° ({yaw_duration}ms)")
+            else:
+                print("[YAW ONLY] No significant horizontal movement, no yaw needed")
+
+            # Skip pitch_forward, increase_throttle, decrease_throttle commands
+            print("[YAW ONLY] Skipping forward/backward and up/down movements for safety")
+            return commands
+
+        # Normal operation - generate all movement commands
         # 1. Calculate yaw angle needed
         target_angle = math.degrees(math.atan2(action.dx, action.dy)) % 360
 

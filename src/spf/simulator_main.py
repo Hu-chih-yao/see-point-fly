@@ -58,8 +58,18 @@ def main(args):
     # Debug mode
     if args.debug:
         print("\n=== DEBUG MODE ===")
+        # Load config for debug mode
+        try:
+            import yaml
+            with open('config_sim.yaml', 'r') as f:
+                config = yaml.safe_load(f)
+                adaptive_mode = config.get('adaptive_mode', True)
+        except Exception as e:
+            print(f"Config loading failed, using default adaptive mode: {e}")
+            adaptive_mode = True
+
         # Create coordinate system visualization
-        action_projector = ActionProjectorSim()
+        action_projector = ActionProjectorSim(adaptive_mode=adaptive_mode)
 
         # Get current screen resolution
         with mss.mss() as sct:
@@ -95,8 +105,18 @@ def main(args):
         # Load test image
         test_image = cv2.imread(test_image_path)
 
+        # Load config for test mode
+        try:
+            import yaml
+            with open('config_sim.yaml', 'r') as f:
+                config = yaml.safe_load(f)
+                adaptive_mode = config.get('adaptive_mode', True)
+        except Exception as e:
+            print(f"Config loading failed, using default adaptive mode: {e}")
+            adaptive_mode = True
+
         # Create controller
-        controller = SimController()
+        controller = SimController(adaptive_mode=adaptive_mode)
 
         # Test instruction
         instruction = "navigate through the crane structure safely"
@@ -117,14 +137,17 @@ def main(args):
         import yaml
         with open('config_sim.yaml', 'r') as f:
             config = yaml.safe_load(f)
+            adaptive_mode = config.get('adaptive_mode', True)
+            print(f"Adaptive Mode: {adaptive_mode}")
             print(f"Command loop delay: {config.get('command_loop_delay', 0)}s")
     except Exception as e:
         print(f"Error loading config: {e}")
         print("Using default configuration")
-        config = {'command_loop_delay': 0}
+        config = {'command_loop_delay': 0, 'adaptive_mode': True}
+        adaptive_mode = True
 
-    # Create controller
-    drone_controller = SimController()
+    # Create controller with adaptive mode configuration
+    drone_controller = SimController(adaptive_mode=adaptive_mode)
 
     try:
         # Get initial command from user

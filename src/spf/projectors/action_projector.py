@@ -251,24 +251,29 @@ class ActionProjector:
 
     def calculate_adjusted_depth(self, vlm_depth):
         """
-        Non-linear depth adjustment that makes:
-        - Close objects (1-3) move slower for precision
-        - Far objects (7-10) move faster for efficiency
+        Custom depth adjustment with specific rules:
+        - Depth <= 2: Use minimal depth for calculations but flag for yaw-only
+        - Depth > 2: Non-linear scaling for efficiency
 
         Args:
             vlm_depth: Depth value from VLM (1-10 scale)
 
         Returns:
-            adjusted_depth: Non-linear scaled depth value
+            tuple: (adjusted_depth, yaw_only_flag)
         """
-        # Base scaling with curve
-        base = (vlm_depth / 10.0)**1.8 * 6.0
-
-        # Add minimum threshold to prevent too slow movements
-        adjusted_depth = max(0.5, base)
-
-        print(f"VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth:.2f}")
-        return adjusted_depth
+        if vlm_depth <= 2:
+            # Very close objects - use minimal depth for calculations, but flag as yaw-only
+            adjusted_depth = 0.5  # Minimal depth to avoid calculation issues
+            yaw_only = True
+            print(f"Tello: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth} (YAW ONLY - too close)")
+            return adjusted_depth, yaw_only
+        else:  # vlm_depth > 2
+            # Far objects - non-linear scaling for efficiency
+            base = (vlm_depth / 10.0)**2.4 * 7
+            adjusted_depth = base
+            yaw_only = False
+            print(f"Tello: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth:.2f} (Normal movement)")
+            return adjusted_depth, yaw_only
 
     def _get_single_action(self, image: np.ndarray, instruction: str, tello_controller=None) -> ActionPoint:
         """Get single next best action with mode-specific processing"""
@@ -451,24 +456,27 @@ class ActionProjector:
                 # Get depth from VLM's response (default to 4 if not provided)
                 vlm_depth = point_info.get('depth', 4)
 
-                # Use the new non-linear depth adjustment
-                adjusted_depth = self.calculate_adjusted_depth(vlm_depth)
+                # Use the new depth adjustment that returns both depth and yaw-only flag
+                adjusted_depth, yaw_only = self.calculate_adjusted_depth(vlm_depth)
 
                 # Project 2D point to 3D with custom depth
                 x3d, y3d, z3d = self.reverse_project_point((pixel_x, pixel_y), depth=adjusted_depth)
 
-                # Create ActionPoint
+                # Create ActionPoint with yaw_only flag
                 action = ActionPoint(
                     dx=x3d, dy=y3d, dz=z3d,
                     action_type="move",
                     screen_x=pixel_x,
-                    screen_y=pixel_y
+                    screen_y=pixel_y,
+                    yaw_only=yaw_only  # Set the yaw-only flag based on depth
                 )
 
                 print(f"\\nIdentified single action: {point_info['label']}")
                 print(f"2D Normalized: ({x}, {y})")
                 print(f"2D Pixels: ({pixel_x}, {pixel_y})")
                 print(f"Depth estimation: {vlm_depth}/10 (adjusted to {adjusted_depth:.2f})")
+                if yaw_only:
+                    print(f"[SAFETY] YAW ONLY mode - object too close for forward movement")
                 print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
 
                 return action

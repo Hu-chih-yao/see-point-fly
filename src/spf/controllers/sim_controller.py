@@ -13,11 +13,12 @@ from datetime import datetime
 import yaml
 
 class SimController:
-    def __init__(self):
+    def __init__(self, adaptive_mode=True):
         self.keyboard = Controller()
         self.action_queue = queue.Queue()
         self.running = True
         self.action_history = deque(maxlen=5)  # Keep last 5 actions
+        self.adaptive_mode = adaptive_mode  # Store adaptive mode setting
 
         # Start keyboard control thread
         self.keyboard_thread = threading.Thread(target=self._keyboard_control_loop)
@@ -50,7 +51,9 @@ class SimController:
 
         # Initialize action space for command conversion
         self.action_space = DroneActionSpaceSim()
-        self.action_projector = ActionProjectorSim(config_path="config_sim.yaml")
+        self.action_projector = ActionProjectorSim(adaptive_mode=self.adaptive_mode, config_path="config_sim.yaml")
+
+        print(f"SimController initialized in {'adaptive' if self.adaptive_mode else 'obstacle'} mode.")
 
         # Add data collection attributes
         self.data_dir = "drone_training_data"

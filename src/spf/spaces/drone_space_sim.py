@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 @dataclass
 class ActionPoint:
@@ -12,10 +12,15 @@ class ActionPoint:
     action_type: str
     screen_x: float = 0.0  # 2D projected coordinates for visualization
     screen_y: float = 0.0
-    detected_obstacles: list = None  # Store detected obstacles
+    detected_obstacles: Optional[list] = None  # Store detected obstacles
+    adaptive_depth: Optional[float] = None  # Adjusted depth for adaptive movement
+    vlm_depth: Optional[float] = None  # Original depth from VLM (1-10)
 
     def __str__(self):
-        return f"Action({self.action_type}): Move({self.dx:.1f}, {self.dy:.1f}, {self.dz:.1f})"
+        if self.adaptive_depth is not None:
+            return f"Action({self.action_type}): Move({self.dx:.1f}, {self.dy:.1f}, {self.dz:.1f}), Adaptive Depth: {self.adaptive_depth:.2f}"
+        else:
+            return f"Action({self.action_type}): Move({self.dx:.1f}, {self.dy:.1f}, {self.dz:.1f})"
 
 class DroneActionSpaceSim:
     def __init__(self, n_samples: int = 8):
@@ -50,8 +55,32 @@ class DroneActionSpaceSim:
         return actions
 
     def action_to_commands(self, action: ActionPoint) -> List[Tuple[str, int]]:
-        """Convert a relative movement action into drone commands"""
+        """Convert a relative movement action into drone commands with adaptive timing"""
         commands = []
+
+        # Determine timing multiplier based on adaptive depth
+        if hasattr(action, 'adaptive_depth') and action.adaptive_depth is not None:
+            depth_factor = action.adaptive_depth
+
+            if depth_factor == 0:
+                # Special case: depth 0 means no movement (object too close)
+                print("[ADAPTIVE TIMING] Depth 0 detected - No movement commands will be generated")
+                return []  # Return empty command list for no movement
+            else:
+                # Use adaptive depth for timing (higher depth = faster movement)
+                time_multiplier = depth_factor
+                print(f"[ADAPTIVE TIMING] Using depth factor {depth_factor:.2f} for movement timing")
+        else:
+            # Default timing for non-adaptive mode
+            time_multiplier = 1.0
+
+        # Base timing values
+        base_rotate_time = 7500  # time to rotate 360 degrees
+        base_move_time = 1000    # time to move 1 unit
+
+        # Apply adaptive timing
+        rotate_time = int(base_rotate_time / time_multiplier)
+        move_time = int(base_move_time / time_multiplier)
 
         # 1. Calculate yaw angle needed
         target_angle = math.degrees(math.atan2(action.dx, action.dy)) % 360
@@ -59,21 +88,25 @@ class DroneActionSpaceSim:
         # 2. Add yaw command if needed (if there's horizontal movement)
         if abs(action.dx) > 0.01 or abs(action.dy) > 0.01:
             if target_angle > 180:
-                commands.append(('yaw_left', int(abs(360 - target_angle) * (7500/360))))
+                yaw_duration = int(abs(360 - target_angle) * (rotate_time/360))
+                commands.append(('yaw_left', yaw_duration))
             else:
-                commands.append(('yaw_right', int(target_angle * (7500/360))))
+                yaw_duration = int(target_angle * (rotate_time/360))
+                commands.append(('yaw_right', yaw_duration))
 
         # 3. Add forward movement if needed
         distance_xy = math.sqrt(action.dx**2 + action.dy**2)
         if distance_xy > 0.01:
-            commands.append(('pitch_forward', int(distance_xy * 1000)))
+            forward_duration = int(distance_xy * move_time)
+            commands.append(('pitch_forward', forward_duration))
 
         # 4. Add vertical movement if needed
         if abs(action.dz) > 0.01:
+            vertical_duration = int(abs(action.dz) * move_time)
             if action.dz > 0:
-                commands.append(('increase_throttle', int(abs(action.dz) * 1000)))
+                commands.append(('increase_throttle', vertical_duration))
             else:
-                commands.append(('decrease_throttle', int(abs(action.dz) * 1000)))
+                commands.append(('decrease_throttle', vertical_duration))
 
         return commands
 
@@ -116,4 +149,5 @@ class DroneActionSpaceSim:
         }
 
 if __name__ == "__main__":
-    test_action_space()
+    # Test code removed
+    pass
