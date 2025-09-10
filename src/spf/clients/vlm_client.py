@@ -2,7 +2,9 @@ import os
 import base64
 from google import genai
 from openai import OpenAI
+from openai.types.chat import ChatCompletionUserMessageParam
 from dotenv import load_dotenv
+from typing import List
 
 class VLMClient:
     """
@@ -105,7 +107,7 @@ class VLMClient:
 
     def _get_openai_response(self, prompt: str, encoded_image: str) -> str:
         """Get response from OpenAI API with image"""
-        messages = [
+        messages: List[ChatCompletionUserMessageParam] = [
             {
                 "role": "user",
                 "content": [
