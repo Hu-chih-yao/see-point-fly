@@ -502,7 +502,7 @@ def main():
     parser.add_argument("--instructions", type=str, nargs="+", required=True,
                        help="Navigation instructions to test")
     parser.add_argument("--providers", type=str, nargs="+",
-                       default=["gemini:gemini-2.0-flash", "openai:gpt-4o"],
+                       default=["gemini:gemini-2.5-flash", "openai:openai/gpt-4.1"],
                        help="Provider:model pairs to test")
     parser.add_argument("--images", type=str, help="Directory with test images")
     parser.add_argument("--output", type=str, help="Output directory")
@@ -519,7 +519,7 @@ def main():
         else:
             # Default models
             if provider_spec == "gemini":
-                provider, model = "gemini", "gemini-2.0-flash"
+                provider, model = "gemini", "gemini-2.5-flash"
             elif provider_spec == "openai":
                 provider, model = "openai", "openai/gpt-4.1"
             else:

@@ -63,7 +63,7 @@ from spf_tools.vlm import run_accuracy_test
 # Quick accuracy test
 results = run_accuracy_test(
     instructions=["fly toward the car", "navigate to the building"],
-    providers=[("gemini", "gemini-2.0-flash"), ("openai", "openai/gpt-4.1")]
+    providers=[("gemini", "gemini-2.5-flash"), ("openai", "openai/gpt-4.1")]
 )
 ```
 
@@ -130,7 +130,7 @@ tester = VLMAccuracyTester(
 )
 
 results = tester.run_accuracy_tests(
-    providers=[("gemini", "gemini-2.0-flash"), ("openai", "openai/gpt-4.1")],
+    providers=[("gemini", "gemini-2.5-flash"), ("openai", "openai/gpt-4.1")],
     instructions=["fly to the red car", "navigate around the building"]
 )
 
@@ -204,7 +204,7 @@ from spf_tools.vlm import VLMAccuracyTester
 tester = VLMAccuracyTester()
 results = tester.run_accuracy_tests(
     providers=[
-        ("gemini", "gemini-2.0-flash"),
+        ("gemini", "gemini-2.5-flash"),
         ("gemini", "gemini-2.5-pro"),
         ("openai", "openai/gpt-4.1")
     ],
@@ -351,7 +351,7 @@ spf-tools diagnostics --monitors --capture
 spf-tools capture --info --test --save
 
 # VLM accuracy testing
-spf-tools vlm --instructions "navigate to building" "fly to car" --providers gemini:gemini-2.0-flash openai:openai/gpt-4.1
+spf-tools vlm --instructions "navigate to building" "fly to car" --providers gemini:gemini-2.5-flash openai:openai/gpt-4.1
 
 # Resolution management
 spf-tools resolution --check --fix

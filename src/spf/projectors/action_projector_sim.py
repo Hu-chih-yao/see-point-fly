@@ -15,11 +15,9 @@ class ActionProjectorSim:
     """
 
     def __init__(self,
-                 image_width=3420,
-                 image_height=2214,
-                 camera_matrix=None,
-                 dist_coeffs=None,
-                 adaptive_mode=True,
+                 image_width=1920,
+                 image_height=1080,
+                 adaptive_mode=False,
                  config_path="config_sim.yaml"):
         """
         Initialize the projector with image dimensions and optional camera parameters
@@ -27,8 +25,6 @@ class ActionProjectorSim:
         Args:
             image_width (int): Width of the input image (default: match monitor 1)
             image_height (int): Height of the input image (default: match monitor 1)
-            camera_matrix (np.ndarray): Optional 3x3 camera matrix
-            dist_coeffs (np.ndarray): Optional distortion coefficients
             adaptive_mode (bool): Enable adaptive depth-based movement scaling
             config_path (str): Path to configuration file
         """
@@ -72,9 +68,6 @@ class ActionProjectorSim:
         self.output_dir = f"action_visualizations/{self.timestamp}"
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # Single action mode only
-        self.mode = "single"
-
     def _determine_model_name(self):
         """Determine model name based on provider and custom setting"""
         if self.custom_model:
@@ -82,9 +75,9 @@ class ActionProjectorSim:
 
         # Default models based on provider (simulator doesn't have mode variations)
         if self.api_provider == "openai":
-            return "google/gemini-2.5-pro"
+            return "google/gemini-2.5-flash"
         else:  # gemini provider
-            return "gemini-2.5-pro"
+            return "gemini-2.5-flash"
 
     def project_point(self, point_3d: Tuple[float, float, float]) -> Tuple[int, int]:
         """Project 3D point using proper perspective projection for drone view"""
@@ -166,12 +159,6 @@ class ActionProjectorSim:
 
         return adjusted_depth
 
-    def set_mode(self, mode: str):
-        """Set operation mode: only 'single' supported"""
-        if mode != "single":
-            raise ValueError("Only 'single' mode is supported")
-        self.mode = mode
-
     def get_vlm_points(self, image: np.ndarray, instruction: str) -> List[ActionPoint]:
         """Use VLM to identify points based on current mode and API provider"""
         timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -227,7 +214,6 @@ class ActionProjectorSim:
                 # Save decision data
                 decision_data = {
                     "timestamp": timestamp,
-                    "mode": self.mode,
                     "instruction": instruction,
                     "actions": []
                 }
@@ -498,6 +484,3 @@ Notes:
                    (10, height-10), font, 0.5, (255, 255, 255), 1)
 
         return image
-
-if __name__ == "__main__":
-    print("ActionProjector simulator module - import this module to use ActionProjector class")

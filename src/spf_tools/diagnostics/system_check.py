@@ -140,7 +140,7 @@ def check_vlm_client() -> bool:
         # Test Gemini client initialization
         print("Testing Gemini client initialization...")
         try:
-            gemini_client = VLMClient("gemini", "gemini-2.0-flash")
+            gemini_client = VLMClient("gemini", "gemini-2.5-flash")
             print("✅ Gemini client initialized successfully")
             gemini_works = True
         except Exception as e:

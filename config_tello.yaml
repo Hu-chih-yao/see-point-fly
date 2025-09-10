@@ -8,7 +8,7 @@ api_provider: "gemini" # or "openai"
 # Model Configuration
 # Specify the exact model name to use (overrides operational_mode defaults)
 # Leave empty to use operational_mode defaults
-model_name: "" # e.g., "gemini-2.0-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+model_name: "" # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
 
 # Operational Mode Configuration
 # adaptive_mode: Original version with depth estimation and adaptive navigation

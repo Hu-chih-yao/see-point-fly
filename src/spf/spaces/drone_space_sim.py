@@ -147,6 +147,3 @@ class DroneActionSpaceSim:
             'last_action': action,
             'duration': duration_ms
         }
-
-if __name__ == "__main__":
-    print("DroneActionSpaceSim module - import this module to use DroneActionSpaceSim class")

@@ -23,7 +23,7 @@ from spf_tools.vlm import VLMAccuracyTester
 
 tester = VLMAccuracyTester()
 results = tester.run_accuracy_tests(
-    providers=[("gemini", "gemini-2.0-flash")],
+    providers=[("gemini", "gemini-2.5-flash")],
     instructions=["fly toward the car", "navigate to the building"]
 )
 ```

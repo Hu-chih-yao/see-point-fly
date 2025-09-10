@@ -9,7 +9,6 @@ and real Tello drone modes via command line arguments.
 
 import sys
 import argparse
-from pathlib import Path
 
 # We're now inside the spf package, so imports work directly
 

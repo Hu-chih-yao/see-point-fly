@@ -17,8 +17,6 @@ class ActionProjector:
     def __init__(self,
                  image_width=960,
                  image_height=720,
-                 camera_matrix=None,
-                 dist_coeffs=None,
                  mode="adaptive_mode",
                  config_path="config_tello.yaml"):
         """
@@ -27,8 +25,8 @@ class ActionProjector:
         Args:
             image_width (int): Width of the input image (default: match monitor 1)
             image_height (int): Height of the input image (default: match monitor 1)
-            camera_matrix (np.ndarray): Optional 3x3 camera matrix
-            dist_coeffs (np.ndarray): Optional distortion coefficients
+            mode (str): Operational mode ("adaptive_mode" or "obstacle_mode")
+            config_path (str): Path to configuration file
         """
         self.image_width = image_width
         self.image_height = image_height
@@ -70,9 +68,6 @@ class ActionProjector:
         self.output_dir = f"action_visualizations/{self.timestamp}"
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # Single action mode only
-        self.mode = "single"
-
     def _determine_model_name(self, mode):
         """Determine model name based on provider, mode, and custom setting"""
         if self.custom_model:
@@ -83,12 +78,12 @@ class ActionProjector:
             if mode == "obstacle_mode":
                 return "google/gemini-2.5-pro"
             else:
-                return "google/gemini-2.0-flash-001"
+                return "google/gemini-2.5-flash"
         else:  # gemini provider
             if mode == "obstacle_mode":
                 return "gemini-2.5-pro"
             else:
-                return "gemini-2.0-flash"
+                return "gemini-2.5-flash"
 
     def project_point(self, point_3d: Tuple[float, float, float]) -> Tuple[int, int]:
         """Project 3D point using proper perspective projection for drone view"""
@@ -147,12 +142,6 @@ class ActionProjector:
         y = depth
 
         return (x, y, z)
-
-    def set_mode(self, mode: str):
-        """Set operation mode: only 'single' supported"""
-        if mode != "single":
-            raise ValueError("Only 'single' mode is supported")
-        self.mode = mode
 
     def get_vlm_points(self, image: np.ndarray, instruction: str, tello_controller=None) -> List[ActionPoint]:
         """Use VLM to identify points based on current mode and API provider"""
@@ -555,6 +544,3 @@ class ActionProjector:
                    (10, height-10), font, 0.5, (255, 255, 255), 1)
 
         return image
-
-if __name__ == "__main__":
-    print("ActionProjector module - import this module to use ActionProjector class")

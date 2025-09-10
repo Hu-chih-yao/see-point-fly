@@ -5,14 +5,12 @@ Uses Tello camera feed, depth estimation, and LLM-based command processing
 """
 
 import os
-import sys
 import time
 import cv2
 import numpy as np
 import threading
 import queue
 import yaml
-from pathlib import Path
 from datetime import datetime
 
 # We're now inside the spf package, so imports work directly

@@ -7,10 +7,10 @@ api_provider: "gemini" # or "openai"
 # Model Configuration
 # Specify the exact model name to use
 # Leave empty to use default model for the provider
-model_name: "" # e.g., "gemini-2.0-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+model_name: "" # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
 
 # Navigation Mode
-adaptive_mode: true # Enable adaptive depth-based movement (true/false)
+adaptive_mode: false # Enable adaptive depth-based movement (true/false)
 
 # Processing Configuration
 command_loop_delay: 0 # seconds between processing cycles

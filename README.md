@@ -38,7 +38,7 @@ When using **Tello Mode** (physical drone), you can choose between two operation
 ### 🎯 **Adaptive Mode** (Precision Navigation)
 - **Best for**: Indoor navigation, precise positioning tasks
 - **Features**: Advanced depth estimation, adaptive movement speed, precision control
-- **AI Model**: Gemini 2.0 Flash (optimized for speed and accuracy)
+- **AI Model**: Gemini 2.5 Flash (optimized for speed and accuracy)
 - **Recording**: 3fps frame recording
 - **Safety**: Standard error handling
 
@@ -112,7 +112,7 @@ Configure your navigation mode in `config_tello.yaml`:
 api_provider: "gemini"
 
 # Model Selection (optional - leave empty for our experiment defaults)
-model_name: ""  # e.g., "gemini-2.0-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+model_name: ""  # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
 
 # Choose your operational mode
 operational_mode: "adaptive_mode"  # or "obstacle_mode"
@@ -125,7 +125,7 @@ command_loop_delay: 2  # seconds between processing cycles
 
 | Mode | Best For | Default AI Model | Safety Features |
 |------|----------|------------------|-----------------|
-| `adaptive_mode` | Indoor precision tasks | Gemini 2.0 Flash | Standard error handling |
+| `adaptive_mode` | Indoor precision tasks | Gemini 2.5 Flash | Standard error handling |
 | `obstacle_mode` | Complex environments | Gemini 2.5 Pro | Enhanced safety + obstacle detection |
 
 ### Simulator Mode Configuration
@@ -137,7 +137,7 @@ Configure your API provider in `config_sim.yaml`:
 api_provider: "gemini"
 
 # Model Selection (optional - leave empty for defaults)
-model_name: ""  # e.g., "gemini-2.0-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+model_name: ""  # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
 ```
 
 ## Navigation Intelligence
@@ -275,7 +275,7 @@ spf sim --monitor 2
 | **Environment** | Physical DJI Tello drone | Virtual screen-based simulation |
 | **Input Source** | Live camera feed (720p) | Screen capture |
 | **Control Method** | Direct RC commands | Keyboard simulation |
-| **AI Models** | Dual modes (Gemini 2.0 Flash /2.5 Pro) | Single mode optimization |
+| **AI Models** | Dual modes (Gemini 2.5 Flash /2.5 Pro) | Single mode optimization |
 | **Safety Systems** | Battery monitoring, keepalive | Standard error handling |
 | **Setup Requirements** | Tello drone + Wi-Fi connection | Any computer with screen |
 | **Best Use Cases** | Real flight testing, demonstrations | Algorithm development, testing |

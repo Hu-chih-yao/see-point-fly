@@ -5,37 +5,13 @@ Uses screen capture, depth estimation, and LLM-based command processing
 """
 
 import os
-import sys
 import time
 import cv2
 import numpy as np
-import threading
-import queue
 import mss
-from pathlib import Path
 
-# We're now inside the spf package, so imports work directly
 from .controllers.sim_controller import SimController
 from .projectors.action_projector_sim import ActionProjectorSim
-
-# Import fixed screen capture
-try:
-    from tools.capture.fixed_capture import capture_screen_fixed as capture_screen
-    print("Using resolution-fixed screen capture")
-except ImportError:
-    try:
-        from .controllers.sim_controller import capture_screen
-        print("Using default screen capture")
-    except ImportError:
-        # Fallback implementation
-        def capture_screen(monitor_index=1):
-            with mss.mss() as sct:
-                monitor = sct.monitors[monitor_index]
-                screenshot = sct.grab(monitor)
-                frame = np.array(screenshot)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB)
-                return frame
-        print("Using fallback screen capture")
 
 def print_monitor_info():
     """Print information about available monitors"""
@@ -45,6 +21,58 @@ def print_monitor_info():
                 print(f"Monitor {i} (All): {monitor}")
             else:
                 print(f"Monitor {i}: {monitor['width']}x{monitor['height']} at ({monitor['left']}, {monitor['top']})")
+
+def detect_screen_dimensions(monitor_index=1):
+    """Detect screen dimensions for specified monitor
+
+    Args:
+        monitor_index: Index of the monitor to detect (1=main monitor, 0=all monitors)
+
+    Returns:
+        tuple: (screen_width, screen_height)
+    """
+    try:
+        with mss.mss() as sct:
+            # Use monitor 1 (main monitor) to get dimensions
+            monitor = sct.monitors[monitor_index] if len(sct.monitors) > monitor_index else sct.monitors[0]
+            screen_width = monitor['width']
+            screen_height = monitor['height']
+            print(f"Detected screen dimensions: {screen_width}x{screen_height}")
+            return screen_width, screen_height
+    except Exception as e:
+        print(f"Error detecting screen dimensions: {e}")
+        # Return default dimensions as fallback
+        return 1920, 1080
+
+def capture_screen(monitor_index=1):
+    """Capture the simulator screen
+
+    Args:
+        monitor_index: Index of the monitor to capture (1=main monitor, 0=all monitors)
+    """
+    try:
+        with mss.mss() as sct:
+            # Get monitor information
+            if monitor_index >= len(sct.monitors):
+                print(f"Warning: Monitor index {monitor_index} out of range. Using main monitor (1).")
+                monitor_index = 1
+
+            monitor = sct.monitors[monitor_index]
+            screenshot = sct.grab(monitor)
+            img = np.array(screenshot)
+
+            # Print monitor dimensions every 100 captures (commented out by default)
+            # import random
+            # if random.random() < 0.01:  # 1% chance to print monitor info
+            #     print(f"Monitor {monitor_index} dimensions: {img.shape[1]}x{img.shape[0]}")
+
+            return img
+    except Exception as e:
+        print(f"Error capturing screen: {e}")
+        # Return a blank image with error message as fallback
+        blank = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        cv2.putText(blank, "Screen capture error", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+        return blank
 
 def main(args):
     """Main entrypoint with improved startup and diagnostics"""
@@ -68,19 +96,24 @@ def main(args):
             print(f"Config loading failed, using default adaptive mode: {e}")
             adaptive_mode = True
 
+        # Detect screen dimensions
+        monitor_index = getattr(args, 'monitor', 1)
+        screen_width, screen_height = detect_screen_dimensions(monitor_index)
+
         # Create coordinate system visualization
-        action_projector = ActionProjectorSim(adaptive_mode=adaptive_mode)
+        action_projector = ActionProjectorSim(
+            image_width=screen_width,
+            image_height=screen_height,
+            adaptive_mode=adaptive_mode
+        )
 
-        # Get current screen resolution
-        with mss.mss() as sct:
-            monitor = sct.monitors[getattr(args, 'monitor', 1)]
-            print(f"Monitor {getattr(args, 'monitor', 1)} dimensions: {monitor['width']}x{monitor['height']}")
-            print(f"ActionProjectorSim dimensions: {action_projector.image_width}x{action_projector.image_height}")
+        print(f"Monitor {monitor_index} dimensions: {screen_width}x{screen_height}")
+        print(f"ActionProjectorSim dimensions: {action_projector.image_width}x{action_projector.image_height}")
 
-            if monitor['width'] != action_projector.image_width or monitor['height'] != action_projector.image_height:
-                print("\nWARNING: Monitor dimensions don't match ActionProjectorSim dimensions!")
-                print("This may cause incorrect coordinate projections.")
-                print(f"Consider updating ActionProjectorSim to use {monitor['width']}x{monitor['height']}")
+        if screen_width != action_projector.image_width or screen_height != action_projector.image_height:
+            print("\nWARNING: Monitor dimensions don't match ActionProjectorSim dimensions!")
+            print("This may cause incorrect coordinate projections.")
+            print(f"Consider updating ActionProjectorSim to use {screen_width}x{screen_height}")
 
         # Create visualization
         debug_image = action_projector.visualize_coordinate_system()
@@ -115,8 +148,16 @@ def main(args):
             print(f"Config loading failed, using default adaptive mode: {e}")
             adaptive_mode = True
 
+        # Get image dimensions for test mode
+        image_height, image_width = test_image.shape[:2]
+        print(f"Using test image dimensions: {image_width}x{image_height}")
+
         # Create controller
-        controller = SimController(adaptive_mode=adaptive_mode)
+        controller = SimController(
+            adaptive_mode=adaptive_mode,
+            screen_width=image_width,
+            screen_height=image_height
+        )
 
         # Test instruction
         instruction = "navigate through the crane structure safely"
@@ -146,8 +187,15 @@ def main(args):
         config = {'command_loop_delay': 0, 'adaptive_mode': True}
         adaptive_mode = True
 
+    # Detect screen dimensions
+    screen_width, screen_height = detect_screen_dimensions(monitor_index)
+
     # Create controller with adaptive mode configuration
-    drone_controller = SimController(adaptive_mode=adaptive_mode)
+    sim_controller = SimController(
+        adaptive_mode=adaptive_mode,
+        screen_width=screen_width,
+        screen_height=screen_height
+    )
 
     try:
         # Get initial command from user
@@ -162,10 +210,10 @@ def main(args):
             # Wait for previous actions to complete before processing new frame
             if args.debug:
                 print("Waiting for previous actions to complete...")
-                drone_controller.wait_for_queue_empty(debug=True)
+                sim_controller.wait_for_queue_empty(debug=True)
                 print("Action queue empty, processing new frame...")
             else:
-                drone_controller.wait_for_queue_empty()
+                sim_controller.wait_for_queue_empty()
 
             # Capture current view from specified monitor
             frame = capture_screen(monitor_index=monitor_index)
@@ -176,7 +224,7 @@ def main(args):
                 continue
 
             # Process command
-            response = drone_controller.process_spatial_command(
+            response = sim_controller.process_spatial_command(
                 frame,
                 current_command
             )
@@ -192,7 +240,7 @@ def main(args):
         import traceback
         traceback.print_exc()
     finally:
-        if 'drone_controller' in locals():
-            drone_controller.stop()
+        if 'sim_controller' in locals():
+            sim_controller.stop()
 
     return 0

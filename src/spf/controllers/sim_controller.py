@@ -1,6 +1,3 @@
-import cv2
-import numpy as np
-import mss
 import time
 from pynput.keyboard import Key, Controller
 import os
@@ -9,16 +6,17 @@ import queue
 from collections import deque
 from ..spaces.drone_space_sim import DroneActionSpaceSim, ActionPoint
 from ..projectors.action_projector_sim import ActionProjectorSim
-from datetime import datetime
-import yaml
 
 class SimController:
-    def __init__(self, adaptive_mode=True):
+    def __init__(self, adaptive_mode=True, screen_width=1920, screen_height=1080):
         self.keyboard = Controller()
         self.action_queue = queue.Queue()
         self.running = True
         self.action_history = deque(maxlen=5)  # Keep last 5 actions
         self.adaptive_mode = adaptive_mode  # Store adaptive mode setting
+
+        self.screen_width = screen_width
+        self.screen_height = screen_height
 
         # Start keyboard control thread
         self.keyboard_thread = threading.Thread(target=self._keyboard_control_loop)
@@ -51,7 +49,12 @@ class SimController:
 
         # Initialize action space for command conversion
         self.action_space = DroneActionSpaceSim()
-        self.action_projector = ActionProjectorSim(adaptive_mode=self.adaptive_mode, config_path="config_sim.yaml")
+        self.action_projector = ActionProjectorSim(
+            image_width=self.screen_width,
+            image_height=self.screen_height,
+            adaptive_mode=self.adaptive_mode,
+            config_path="config_sim.yaml"
+        )
 
         print(f"SimController initialized in {'adaptive' if self.adaptive_mode else 'obstacle'} mode.")
 
@@ -98,19 +101,6 @@ class SimController:
                 # Make sure to release key if error occurs
                 self.keyboard.release(key)
 
-    def _should_avoid_action(self, proposed_action):
-        """Check if action would cause oscillation"""
-        if not self.action_history:
-            return False
-
-        opposite = self.opposite_actions.get(proposed_action)
-        if len(self.action_history) >= 2:
-            last_two = list(self.action_history)[-2:]
-            if last_two == [proposed_action, opposite] or last_two == [opposite, proposed_action]:
-                print(f"Avoiding oscillation between {proposed_action} and {opposite}")
-                return True
-        return False
-
     def wait_for_queue_empty(self, timeout=30, debug=False):
         """Wait until action queue is empty or timeout occurs"""
         start_time = time.time()
@@ -131,47 +121,6 @@ class SimController:
             print(f"Queue emptied after {time.time() - start_time:.2f} seconds")
         return True
 
-    def process_drone_command(self, current_frame, original_command, last_execution=None):
-        """Process drone command using Gemini's spatial understanding"""
-        try:
-            # Get points from Gemini
-            actions = self.action_projector.get_vlm_points(current_frame, original_command)
-
-            if not actions:
-                return "No valid actions identified"
-
-            # Execute single action
-            response_text = "Executing single action:\n"
-
-            for i, action in enumerate(actions, 1):
-                response_text += f"\n=== Action {i}/{len(actions)} ===\n"
-                response_text += f"Target: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})\n"
-
-                # Convert 3D action to drone commands
-                commands = self.action_space.action_to_commands(action)
-
-                # Execute commands for this action
-                for cmd, duration in commands:
-                    if cmd in self.action_map:
-                        print(f"Executing {cmd} for {duration}ms")
-                        self.execute_action((cmd, duration))
-                        response_text += f"  {cmd}: {duration}ms\n"
-                    else:
-                        print(f"Warning: Invalid command {cmd}")
-
-                # Add small delay between actions
-                time.sleep(0.2)  # 200ms pause between actions
-
-                # Check if action completed
-                if i < len(actions):
-                    response_text += "Action completed, moving to next...\n"
-
-            return response_text
-
-        except Exception as e:
-            print(f"Error in process_drone_command: {e}")
-            return "Error processing command"
-
     def execute_action(self, action_tuple):
         """Add action to queue"""
         self.action_queue.put(action_tuple)
@@ -182,34 +131,15 @@ class SimController:
         if self.keyboard_thread.is_alive():
             self.keyboard_thread.join()
 
-    def collect_training_sample(self, frame, action, duration_ms, command):
-        """Collect a single training sample"""
-        # Save image
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        image_path = os.path.join(self.data_dir, f"frame_{timestamp}.jpg")
-        cv2.imwrite(image_path, frame)
-
-        # Store sample data
-        sample = {
-            "image_path": image_path,
-            "action": action,
-            "duration_ms": duration_ms,
-            "command": command,
-            "timestamp": timestamp
-        }
-        self.current_episode.append(sample)
-
     def process_spatial_command(self, current_frame, instruction: str):
         """Process command using spatial understanding system"""
         try:
-            # Set single mode and get action
-            self.action_projector.set_mode("single")
             actions = self.action_projector.get_vlm_points(current_frame, instruction)
 
             if not actions:
                 return "No valid actions identified"
 
-            response_text = f"\n=== SINGLE ACTION MODE ===\n"
+            response_text = "\n=== SINGLE ACTION MODE ===\n"
 
             action = actions[0]
             if action is None:
@@ -233,81 +163,3 @@ class SimController:
                     print(f"Executing: {cmd} ({duration}ms)")
                 self.execute_action((cmd, duration))
                 time.sleep(duration/1000.0)  # Reduced delay
-
-def print_monitor_info():
-    """Print information about available monitors for debugging"""
-    with mss.mss() as sct:
-        for i, monitor in enumerate(sct.monitors):
-            print(f"Monitor {i}: {monitor}")
-
-def capture_screen(monitor_index=1):
-    """Capture the simulator screen
-
-    Args:
-        monitor_index: Index of the monitor to capture (1=main monitor, 0=all monitors)
-    """
-    try:
-        with mss.mss() as sct:
-            # Get monitor information
-            if monitor_index >= len(sct.monitors):
-                print(f"Warning: Monitor index {monitor_index} out of range. Using main monitor (1).")
-                monitor_index = 1
-
-            monitor = sct.monitors[monitor_index]
-            screenshot = sct.grab(monitor)
-            img = np.array(screenshot)
-
-            # Print monitor dimensions every 100 captures (commented out by default)
-            # import random
-            # if random.random() < 0.01:  # 1% chance to print monitor info
-            #     print(f"Monitor {monitor_index} dimensions: {img.shape[1]}x{img.shape[0]}")
-
-            return img
-    except Exception as e:
-        print(f"Error capturing screen: {e}")
-        # Return a blank image with error message as fallback
-        blank = np.zeros((2214, 3420, 3), dtype=np.uint8)
-        cv2.putText(blank, "Screen capture error", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-        return blank
-
-def main():
-    """Main control loop"""
-    # Load config
-    with open('config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
-
-    drone_controller = DroneController()
-
-    try:
-        # Get initial command from user
-        current_command = input("Enter high-level command (e.g., 'navigate through the center of the crane structure'): ")
-
-        print("\nStarting control loop in", config['mode'], "mode...")
-        print("Press Ctrl+C to exit")
-
-        while True:
-            # Capture current view
-            frame = capture_screen()
-
-            # Process command using spatial understanding
-            response = drone_controller.process_spatial_command(
-                frame,
-                current_command,
-                mode=config['mode']
-            )
-            print(f"\nAction Response:\n{response}\n")
-
-            # Add configured delay between actions
-            time.sleep(config['command_loop_delay'])
-
-            # Loop back to get next action from Gemini
-            # No asking for completion, just continuous processing
-
-    except KeyboardInterrupt:
-        print("\nInterrupted by user")
-    finally:
-        drone_controller.stop()
-
-if __name__ == "__main__":
-    print("Starting in 3 seconds... Switch to simulator window!")
-    time.sleep(3)

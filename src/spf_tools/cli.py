@@ -139,7 +139,7 @@ def cmd_vlm(args) -> int:
         else:
             # Use default models
             if provider_spec == "gemini":
-                provider, model = "gemini", "gemini-2.0-flash"
+                provider, model = "gemini", "gemini-2.5-flash"
             elif provider_spec == "openai":
                 provider, model = "openai", "openai/gpt-4.1"
             else:
@@ -280,7 +280,7 @@ Examples:
     vlm_parser.add_argument('--instructions', nargs='+', required=True,
                            help='Navigation instructions to test')
     vlm_parser.add_argument('--providers', nargs='+',
-                           default=['gemini:gemini-2.0-flash', 'openai:openai/gpt-4.1'],
+                           default=['gemini:gemini-2.5-flash', 'openai:openai/gpt-4.1'],
                            help='VLM providers to test (format: provider:model)')
     vlm_parser.add_argument('--images', help='Directory with test images')
     vlm_parser.add_argument('--output', help='Output directory for results')

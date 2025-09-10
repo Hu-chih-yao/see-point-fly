@@ -28,7 +28,7 @@ def run_accuracy_test(instructions, providers=None, output_dir=None):
     """
     if providers is None:
         providers = [
-            ("gemini", "gemini-2.0-flash"),
+            ("gemini", "gemini-2.5-flash"),
             ("openai", "openai/gpt-4.1")
         ]
 
