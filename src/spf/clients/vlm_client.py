@@ -1,6 +1,6 @@
 import os
 import base64
-import google.generativeai as genai
+from google import genai
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -38,16 +38,14 @@ class VLMClient:
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
 
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
 
-        self.model = genai.GenerativeModel(
-            model_name=self.model_name,
-            generation_config={
-                "temperature": 0.4,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 8192,
-            }
+        # Store generation config for later use
+        self.generation_config = genai.types.GenerateContentConfig(
+            temperature=0.4,
+            top_p=0.95,
+            top_k=40,
+            max_output_tokens=8192,
         )
 
     def _init_openai_client(self):
@@ -87,11 +85,23 @@ class VLMClient:
 
     def _get_gemini_response(self, prompt: str, encoded_image: str) -> str:
         """Get response from Gemini API"""
-        response = self.model.generate_content([
-            prompt,
-            {'mime_type': 'image/jpeg', 'data': encoded_image}
-        ])
-        return response.text
+        import base64
+        import io
+        from PIL import Image
+
+        # Decode base64 string to bytes and convert to PIL Image
+        image_bytes = base64.b64decode(encoded_image)
+        pil_image = Image.open(io.BytesIO(image_bytes))
+
+        # Use PIL Image directly as the migration guide suggests
+        contents = [prompt, pil_image]
+
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=contents,
+            config=self.generation_config
+        )
+        return response.text or ""
 
     def _get_openai_response(self, prompt: str, encoded_image: str) -> str:
         """Get response from OpenAI API with image"""
@@ -117,7 +127,7 @@ class VLMClient:
             max_tokens=8192
         )
 
-        return response.choices[0].message.content
+        return response.choices[0].message.content or ""
 
     @staticmethod
     def clean_response_text(response_text: str) -> str:
