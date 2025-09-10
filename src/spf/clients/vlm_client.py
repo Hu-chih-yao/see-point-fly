@@ -123,6 +123,10 @@ class VLMClient:
         ]
 
         response = self.openai_client.chat.completions.create(
+            extra_headers={
+                "HTTP-Referer": "https://spf-web.pages.dev",
+                "X-Title": "See, Point, Fly"
+            },
             model=self.model_name,
             messages=messages,
             temperature=0.4,
