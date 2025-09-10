@@ -45,7 +45,7 @@ When using **Tello Mode** (physical drone), you can choose between two operation
 ### 🛡️ **Obstacle Mode** (Safe Navigation)
 - **Best for**: Complex environments, outdoor navigation, obstacle-rich areas
 - **Features**: Obstacle detection, bounding box visualization, intensive keepalive system
-- **AI Model**: Gemini 2.5 Pro Preview (advanced obstacle recognition)
+- **AI Model**: Gemini 2.5 Pro (advanced obstacle recognition)
 - **Recording**: 10fps high-detail recording
 - **Safety**: Enhanced timeout protection, automatic safety landing
 
@@ -68,7 +68,7 @@ For comprehensive technical documentation including system architecture, data fl
 ### For Both Modes
 - uv (Python package manager)
 - Python 3.13+
-- Google Gemini API key
+- Google Gemini API key or OpenAI compatible API key
 
 ### For Tello Mode (Physical Drone)
 - DJI Tello drone
@@ -112,7 +112,7 @@ Configure your navigation mode in `config_tello.yaml`:
 api_provider: "gemini"
 
 # Model Selection (optional - leave empty for our experiment defaults)
-model_name: ""  # e.g., "gemini-2.5-pro", "google/gemini-2.5-pro", "openai/gpt-4.1"
+model_name: ""  # e.g., "gemini-2.0-flash", "gemini-2.5-pro", "openai/gpt-4.1"
 
 # Choose your operational mode
 operational_mode: "adaptive_mode"  # or "obstacle_mode"
@@ -137,7 +137,7 @@ Configure your API provider in `config_sim.yaml`:
 api_provider: "gemini"
 
 # Model Selection (optional - leave empty for defaults)
-model_name: ""  # e.g., "gemini-2.5-pro", "google/gemini-2.5-pro", "openai/gpt-4.1"
+model_name: ""  # e.g., "gemini-2.0-flash", "gemini-2.5-pro", "openai/gpt-4.1"
 ```
 
 ## Navigation Intelligence
@@ -275,7 +275,7 @@ spf sim --monitor 2
 | **Environment** | Physical DJI Tello drone | Virtual screen-based simulation |
 | **Input Source** | Live camera feed (720p) | Screen capture |
 | **Control Method** | Direct RC commands | Keyboard simulation |
-| **AI Models** | Dual modes (Gemini 2.0/2.5) | Single mode optimization |
+| **AI Models** | Dual modes (Gemini 2.0 Flash /2.5 Pro) | Single mode optimization |
 | **Safety Systems** | Battery monitoring, keepalive | Standard error handling |
 | **Setup Requirements** | Tello drone + Wi-Fi connection | Any computer with screen |
 | **Best Use Cases** | Real flight testing, demonstrations | Algorithm development, testing |

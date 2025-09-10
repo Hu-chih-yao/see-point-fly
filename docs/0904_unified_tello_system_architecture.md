@@ -174,7 +174,7 @@ def calculate_adjusted_depth(gemini_depth):
 
 #### 2. Obstacle Mode (`obstacle_mode`)
 - **Purpose**: Safe navigation with obstacle detection and avoidance
-- **Model**: Gemini 2.5 Pro Preview
+- **Model**: Gemini 2.5 Pro
 - **Focus**: Safety and obstacle awareness
 - **Use Case**: Complex environments, outdoor navigation
 
@@ -314,7 +314,7 @@ class ActionPoint:
                                                         │
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────▼───────┐
 │   Safety        │◀───│   Obstacle      │◀───│   Gemini        │
-│  Navigation     │    │  Detection      │    │ 2.5 Pro Preview │
+│  Navigation     │    │  Detection      │    │  2.5 Pro        │
 │(controllers/    │    │ (projectors/    │    │ (projectors/    │
 │tello_controller)│    │action_projector)│    │action_projector)│
 └─────────────────┘    └─────────────────┘    └─────────┬───────┘
@@ -332,7 +332,7 @@ class ActionPoint:
 ```
   ┌───────────────┐    ┌──────────────┐    ┌─────────────────┐
   │   Screen      │───▶│   Frame      │───▶│    Gemini       │
-  │  Capture      │    │ Processing   │    │ 2.5 Pro Preview │
+  │  Capture      │    │ Processing   │    │   2.5 Pro       │
   │(controllers/  │    │(simulator_   │    │ (projectors/    │
   │sim_controller)│    │  main.py)    │    │action_projector_│
   └───────────────┘    └──────────────┘    │      sim)       │
