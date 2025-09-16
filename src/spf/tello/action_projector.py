@@ -1,17 +1,16 @@
 import cv2
 import numpy as np
-from ..spaces.drone_space import DroneActionSpace, ActionPoint
+from ..base.action_projector import ActionProjector
+from ..base.drone_space import ActionPoint
+from .drone_space import TelloDroneActionSpace
 from typing import List, Tuple
-from ..clients.vlm_client import VLMClient
 import os
 import time
 import json
-import yaml
 
-class ActionProjector:
+class TelloActionProjector(ActionProjector):
     """
-    Handles projection between 2D screen coordinates and 3D world space
-    Maintains camera model and provides methods for point projection
+    Tello-specific action projector with mode-specific processing
     """
 
     def __init__(self,
@@ -20,112 +19,49 @@ class ActionProjector:
                  mode="adaptive_mode",
                  config_path="config_tello.yaml"):
         """
-        Initialize the projector with image dimensions and optional camera parameters
+        Initialize the Tello projector with mode-specific settings
 
         Args:
-            image_width (int): Width of the input image (default: match monitor 1)
-            image_height (int): Height of the input image (default: match monitor 1)
+            image_width (int): Width of the input image
+            image_height (int): Height of the input image
             mode (str): Operational mode ("adaptive_mode" or "obstacle_mode")
             config_path (str): Path to configuration file
         """
-        self.image_width = image_width
-        self.image_height = image_height
-        self.fov_horizontal = 108  # degrees
-        self.fov_vertical = 108    # degrees
-
-        # Define coordinate space limits with wider range
-        self.x_range = (-3.0, 3.0)    # Left/Right: wider range
-        self.y_range = (0.5, 2.0)     # Forward depth: keep same for good perspective
-        self.z_range = (-1.8, 1.8)    # Up/Down: 3x the original (-0.6, 0.6)
-
-        # Calculate focal length
-        self.focal_length = self.image_width / (2 * np.tan(np.radians(self.fov_horizontal/2)))
-
-        # Initialize action space
-        self.action_space = DroneActionSpace(n_samples=8)
+        super().__init__(image_width, image_height, config_path)
 
         # Store operational mode
         self.operational_mode = mode
 
-        # Load configuration
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+        # Use Tello-specific action space
+        self.action_space = TelloDroneActionSpace(n_samples=8)
 
-        self.api_provider = config.get('api_provider', 'gemini')
-        self.custom_model = config.get('model_name', '').strip()
-
-        # Determine model name based on provider and mode
-        model_name = self._determine_model_name(mode)
-
-        # Initialize VLM client
-        self.vlm_client = VLMClient(self.api_provider, model_name)
+        # Override model name determination for mode-specific models
+        model_name = self._determine_model_name()
+        self.vlm_client.model_name = model_name
         self.model_name = model_name
 
-        print(f"[ActionProjector] Initialized in {mode} with {self.api_provider} provider using model: {self.model_name}")
+        print(f"[TelloActionProjector] Initialized in {mode} with {self.api_provider} provider using model: {self.model_name}")
 
-        # Initialize timestamp and output directory
-        self.timestamp = time.strftime("%Y%m%d_%H%M%S")
-        self.output_dir = f"action_visualizations/{self.timestamp}"
-        os.makedirs(self.output_dir, exist_ok=True)
-
-    def _determine_model_name(self, mode):
+    def _determine_model_name(self):
         """Determine model name based on provider, mode, and custom setting"""
         if self.custom_model:
             return self.custom_model
 
         # Default models based on provider and mode
         if self.api_provider == "openai":
-            if mode == "obstacle_mode":
+            if self.operational_mode == "obstacle_mode":
                 return "google/gemini-2.5-pro"
             else:
                 return "google/gemini-2.5-flash"
         else:  # gemini provider
-            if mode == "obstacle_mode":
+            if self.operational_mode == "obstacle_mode":
                 return "gemini-2.5-pro"
             else:
                 return "gemini-2.5-flash"
 
-    def project_point(self, point_3d: Tuple[float, float, float]) -> Tuple[int, int]:
-        """Project 3D point using proper perspective projection for drone view"""
-        try:
-            x, y, z = point_3d
-
-            # Center points
-            center_x = self.image_width / 2
-            center_y = self.image_height / 2
-
-            # Calculate perspective scaling based on field of view
-            fov_factor = np.tan(np.radians(self.fov_horizontal / 2))
-
-            # Perspective projection with proper FOV
-            # y is our depth (forward distance)
-            if y < 0.1:  # Avoid division by zero
-                y = 0.1
-
-            # Scale x and z based on perspective and FOV
-            x_projected = (x / (y * fov_factor)) * (self.image_width / 2)
-            z_projected = (z / (y * fov_factor)) * (self.image_height / 2)
-
-            # Calculate final screen coordinates
-            screen_x = int(center_x + x_projected)
-            screen_y = int(center_y - z_projected)  # Negative because screen y increases downward
-
-            # Clamp to image boundaries
-            screen_x = max(0, min(screen_x, self.image_width-1))
-            screen_y = max(0, min(screen_y, self.image_height-1))
-
-            # Debug print - uncomment if needed
-            # print(f"3D Point ({x:.2f}, {y:.2f}, {z:.2f}) -> Screen ({screen_x}, {screen_y})")
-
-            return (screen_x, screen_y)
-        except Exception as e:
-            print(f"Error in project_point: {e}")
-            # Return center of screen as fallback
-            return (self.image_width // 2, self.image_height // 2)
-
     def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 2) -> Tuple[float, float, float]:
-        """Project 2D image point back to 3D space"""
-        # Set reference point at 20% from top of frame
+        """Project 2D image point back to 3D space with Tello-specific parameters"""
+        # Set reference point at 35% from top of frame
         reference_y = self.image_height * 0.35
 
         # Center and normalize coordinates
@@ -143,6 +79,32 @@ class ActionProjector:
 
         return (x, y, z)
 
+    def calculate_adjusted_depth(self, vlm_depth):
+        """
+        Custom depth adjustment with specific rules:
+        - Depth <= 2: Use minimal depth for calculations but flag for yaw-only
+        - Depth > 2: Non-linear scaling for efficiency
+
+        Args:
+            vlm_depth: Depth value from VLM (1-10 scale)
+
+        Returns:
+            tuple: (adjusted_depth, yaw_only_flag)
+        """
+        if vlm_depth <= 2:
+            # Very close objects - use minimal depth for calculations, but flag as yaw-only
+            adjusted_depth = 0.5  # Minimal depth to avoid calculation issues
+            yaw_only = True
+            print(f"Tello: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth} (YAW ONLY - too close)")
+            return adjusted_depth, yaw_only
+        else:  # vlm_depth > 2
+            # Far objects - non-linear scaling for efficiency
+            base = (vlm_depth / 10.0)**2.4 * 7
+            adjusted_depth = base
+            yaw_only = False
+            print(f"Tello: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth:.2f} (Normal movement)")
+            return adjusted_depth, yaw_only
+
     def get_vlm_points(self, image: np.ndarray, instruction: str, tello_controller=None) -> List[ActionPoint]:
         """Use VLM to identify points based on current mode and API provider"""
         timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -150,13 +112,13 @@ class ActionProjector:
         try:
             # Get single action from VLM with mode-specific processing
             if self.operational_mode == "obstacle_mode":
-                print("\\nin obstacle mode")
+                print("\nin obstacle mode")
                 actions = [self._get_single_action(image, instruction, tello_controller)]
             else:
                 actions = [self._get_single_action(image, instruction)]
 
             if actions:
-                print("\\n actions in visualization part:")
+                print("\n actions in visualization part:")
                 print("/n", actions)
 
                 # Save visualization
@@ -236,41 +198,13 @@ class ActionProjector:
             print(f"Error getting points: {e}")
             return []
 
-
-
-    def calculate_adjusted_depth(self, vlm_depth):
-        """
-        Custom depth adjustment with specific rules:
-        - Depth <= 2: Use minimal depth for calculations but flag for yaw-only
-        - Depth > 2: Non-linear scaling for efficiency
-
-        Args:
-            vlm_depth: Depth value from VLM (1-10 scale)
-
-        Returns:
-            tuple: (adjusted_depth, yaw_only_flag)
-        """
-        if vlm_depth <= 2:
-            # Very close objects - use minimal depth for calculations, but flag as yaw-only
-            adjusted_depth = 0.5  # Minimal depth to avoid calculation issues
-            yaw_only = True
-            print(f"Tello: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth} (YAW ONLY - too close)")
-            return adjusted_depth, yaw_only
-        else:  # vlm_depth > 2
-            # Far objects - non-linear scaling for efficiency
-            base = (vlm_depth / 10.0)**2.4 * 7
-            adjusted_depth = base
-            yaw_only = False
-            print(f"Tello: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth:.2f} (Normal movement)")
-            return adjusted_depth, yaw_only
-
     def _get_single_action(self, image: np.ndarray, instruction: str, tello_controller=None) -> ActionPoint:
         """Get single next best action with mode-specific processing"""
 
         # Mode-specific processing
         if self.operational_mode == "obstacle_mode":
             # Enhanced obstacle-aware processing
-            print("\\nFinished encoding image")
+            print("\nFinished encoding image")
             print(f"[{self.api_provider.upper()}] Preparing API call at {time.strftime('%H:%M:%S')}")
             api_start_time = time.time()
 
@@ -349,9 +283,10 @@ class ActionProjector:
                     tello_controller.stop_intensive_keepalive()
 
             # Parse response text - handle potential markdown formatting
+            from ..clients.vlm_client import VLMClient
             response_text = VLMClient.clean_response_text(response_text)
 
-            print(f"\\n{self.api_provider.upper()} Response:")
+            print(f"\n{self.api_provider.upper()} Response:")
             print(response_text)
 
             # Mode-specific JSON parsing
@@ -394,7 +329,7 @@ class ActionProjector:
                             obstacles.append(obstacle)
                         action.detected_obstacles = obstacles
 
-                    print(f"\\nIdentified single action: {response_data.get('label')}")
+                    print(f"\nIdentified single action: {response_data.get('label')}")
                     print(f"2D Normalized: ({x}, {y})")
                     print(f"2D Pixels: ({pixel_x}, {pixel_y})")
                     print(f"3D Vector: ({x3d:.2f}, {y3d:.2f}, {z3d:.2f})")
@@ -409,7 +344,7 @@ class ActionProjector:
 
                     # Try to manually extract the point information using regex
                     import re
-                    point_match = re.search(r'"point":\\s*\\[(\\d+),\\s*(\\d+)\\]', response_text)
+                    point_match = re.search(r'"point":\s*\[(\d+),\s*(\d+)\]', response_text)
                     if point_match:
                         print(f"[{self.api_provider.upper()}] Attempting fallback point extraction with regex")
                         y, x = int(point_match.group(1)), int(point_match.group(2))
@@ -460,7 +395,7 @@ class ActionProjector:
                     yaw_only=yaw_only  # Set the yaw-only flag based on depth
                 )
 
-                print(f"\\nIdentified single action: {point_info['label']}")
+                print(f"\nIdentified single action: {point_info['label']}")
                 print(f"2D Normalized: ({x}, {y})")
                 print(f"2D Pixels: ({pixel_x}, {pixel_y})")
                 print(f"Depth estimation: {vlm_depth}/10 (adjusted to {adjusted_depth:.2f})")
@@ -484,63 +419,3 @@ class ActionProjector:
                 if 'response_text' in locals():
                     print(response_text)
             return None
-
-    def visualize_coordinate_system(self, image: np.ndarray = None) -> np.ndarray:
-        """Create a visualization of the coordinate system for debugging"""
-        if image is None:
-            # Create blank image
-            image = np.zeros((self.image_height, self.image_width, 3), dtype=np.uint8)
-
-        height, width = image.shape[:2]
-        center = (width//2, height//2)
-
-        # Draw coordinate axes
-        cv2.line(image, center, (width, height//2), (0, 0, 255), 2)  # X axis (red)
-        cv2.line(image, center, (width//2, 0), (0, 255, 0), 2)       # Y axis (green)
-        cv2.line(image, center, (width//4, height//2), (255, 0, 0), 2) # Z axis (blue)
-
-        # Add labels
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(image, "X (right)", (width-100, height//2-10), font, 0.6, (0, 0, 255), 2)
-        cv2.putText(image, "Y (forward)", (width//2+10, 30), font, 0.6, (0, 255, 0), 2)
-        cv2.putText(image, "Z (up)", (width//4-30, height//2-10), font, 0.6, (255, 0, 0), 2)
-
-        # Add grid lines
-        grid_spacing = 100
-        alpha = 0.3  # Grid line opacity
-
-        for i in range(0, width, grid_spacing):
-            cv2.line(image, (i, 0), (i, height), (100, 100, 100), 1)
-            if i % (grid_spacing*5) == 0:  # Darker lines every 500 pixels
-                cv2.line(image, (i, 0), (i, height), (150, 150, 150), 2)
-                cv2.putText(image, f"{i-center[0]}", (i, height-10), font, 0.4, (200, 200, 200), 1)
-
-        for i in range(0, height, grid_spacing):
-            cv2.line(image, (0, i), (width, i), (100, 100, 100), 1)
-            if i % (grid_spacing*5) == 0:  # Darker lines every 500 pixels
-                cv2.line(image, (0, i), (width, i), (150, 150, 150), 2)
-                cv2.putText(image, f"{center[1]-i}", (10, i), font, 0.4, (200, 200, 200), 1)
-
-        # Add sample points in 3D space
-        sample_points = [
-            (1.0, 1.0, 0.0),   # Right and forward
-            (-1.0, 1.0, 0.0),  # Left and forward
-            (0.0, 1.0, 1.0),   # Forward and up
-            (0.0, 1.0, -1.0),  # Forward and down
-            (0.0, 2.0, 0.0)    # Further forward
-        ]
-
-        for i, point in enumerate(sample_points):
-            try:
-                screen_point = self.project_point(point)
-                cv2.circle(image, screen_point, 5, (0, 255, 255), -1)
-                cv2.putText(image, f"P{i+1}: {point}", (screen_point[0]+5, screen_point[1]-5),
-                           font, 0.4, (0, 255, 255), 1)
-            except:
-                pass
-
-        # Add resolution and FOV info
-        cv2.putText(image, f"Resolution: {width}x{height}, FOV: {self.fov_horizontal}°",
-                   (10, height-10), font, 0.5, (255, 255, 255), 1)
-
-        return image

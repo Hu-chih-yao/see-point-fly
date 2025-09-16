@@ -85,10 +85,10 @@ Examples:
 
     # Import and run the appropriate mode
     if args.mode == 'sim':
-        from .simulator_main import main as sim_main
+        from .sim.main import main as sim_main
         return sim_main(args)
     elif args.mode == 'tello':
-        from .tello_main import main as tello_main
+        from .tello.main import main as tello_main
         return tello_main(args)
     else:
         parser.error(f"Unknown mode: {args.mode}")

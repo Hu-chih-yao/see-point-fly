@@ -243,10 +243,10 @@ To ensure ActionProjector dimensions match your display:
 
 ```python
 from spf_tools.resolution import validate_projector_config
-from spf.projectors.action_projector import ActionProjector
+from spf.tello.action_projector import TelloActionProjector
 
-# Get current ActionProjector configuration
-projector = ActionProjector()
+# Get current TelloActionProjector configuration
+projector = TelloActionProjector()
 validation = validate_projector_config(
     projector.image_width,
     projector.image_height

@@ -19,8 +19,8 @@ import json
 # Import SPF modules
 try:
     from spf.clients.vlm_client import VLMClient
-    from spf.projectors.action_projector import ActionProjector
-    from spf.projectors.action_projector_sim import ActionProjectorSim
+    from spf.tello.action_projector import TelloActionProjector
+    from spf.sim.action_projector import SimActionProjector
     from spf_tools.capture import capture_screen, capture_screen_resized, prepare_for_vlm, get_monitor_info
 except ImportError as e:
     print(f"Warning: Could not import SPF modules: {e}")
@@ -185,7 +185,7 @@ def check_vlm_client() -> bool:
 
 def check_projector() -> bool:
     """
-    Test ActionProjector functionality with current monitor configuration.
+    Test TelloActionProjector functionality with current monitor configuration.
 
     Returns:
         True if projector works correctly, False otherwise
@@ -207,16 +207,16 @@ def check_projector() -> bool:
         test_image = capture_screen(monitor_index=1)
         image_height, image_width = test_image.shape[:2]
 
-        # Create ActionProjector with captured image dimensions
+        # Create TelloActionProjector with captured image dimensions
         try:
-            action_projector = ActionProjector(
+            action_projector = TelloActionProjector(
                 image_width=image_width,
                 image_height=image_height,
                 mode="adaptive_mode"
             )
-            print(f"✅ ActionProjector initialized ({image_width}x{image_height})")
+            print(f"✅ TelloActionProjector initialized ({image_width}x{image_height})")
         except Exception as e:
-            print(f"❌ ActionProjector initialization failed: {e}")
+            print(f"❌ TelloActionProjector initialization failed: {e}")
             return False
 
         # Test point projection
@@ -275,7 +275,7 @@ def check_projector() -> bool:
         return projection_accurate
 
     except Exception as e:
-        print(f"❌ ActionProjector test failed: {e}")
+        print(f"❌ TelloActionProjector test failed: {e}")
         return False
 
 

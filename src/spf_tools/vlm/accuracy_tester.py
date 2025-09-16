@@ -24,7 +24,7 @@ import argparse
 # Import SPF modules
 try:
     from spf.clients.vlm_client import VLMClient
-    from spf.spaces.drone_space import ActionPoint
+    from spf.base.drone_space import ActionPoint
     from spf_tools.capture import capture_screen, prepare_for_vlm
 except ImportError as e:
     print(f"Error importing SPF modules: {e}")

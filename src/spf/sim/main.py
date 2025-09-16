@@ -10,8 +10,8 @@ import cv2
 import numpy as np
 import mss
 
-from .controllers.sim_controller import SimController
-from .projectors.action_projector_sim import ActionProjectorSim
+from .controller import SimController
+from .action_projector import SimActionProjector
 
 def print_monitor_info():
     """Print information about available monitors"""
@@ -101,19 +101,19 @@ def main(args):
         screen_width, screen_height = detect_screen_dimensions(monitor_index)
 
         # Create coordinate system visualization
-        action_projector = ActionProjectorSim(
+        action_projector = SimActionProjector(
             image_width=screen_width,
             image_height=screen_height,
             adaptive_mode=adaptive_mode
         )
 
         print(f"Monitor {monitor_index} dimensions: {screen_width}x{screen_height}")
-        print(f"ActionProjectorSim dimensions: {action_projector.image_width}x{action_projector.image_height}")
+        print(f"SimActionProjector dimensions: {action_projector.image_width}x{action_projector.image_height}")
 
         if screen_width != action_projector.image_width or screen_height != action_projector.image_height:
-            print("\nWARNING: Monitor dimensions don't match ActionProjectorSim dimensions!")
+            print("\nWARNING: Monitor dimensions don't match SimActionProjector dimensions!")
             print("This may cause incorrect coordinate projections.")
-            print(f"Consider updating ActionProjectorSim to use {screen_width}x{screen_height}")
+            print(f"Consider updating SimActionProjector to use {screen_width}x{screen_height}")
 
         # Create visualization
         debug_image = action_projector.visualize_coordinate_system()

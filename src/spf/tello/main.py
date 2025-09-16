@@ -14,7 +14,7 @@ import yaml
 from datetime import datetime
 
 # We're now inside the spf package, so imports work directly
-from .controllers.tello_controller import TelloController
+from .controller import TelloController
 
 def save_frame_to_directory(frame, directory, prefix="frame"):
     """

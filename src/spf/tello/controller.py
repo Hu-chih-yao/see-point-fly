@@ -6,8 +6,9 @@ import os
 import threading
 import queue
 from collections import deque
-from ..spaces.drone_space import DroneActionSpace, ActionPoint
-from ..projectors.action_projector import ActionProjector
+from .drone_space import TelloDroneActionSpace
+from .action_projector import TelloActionProjector
+from ..base.drone_space import ActionPoint
 from datetime import datetime
 from djitellopy import Tello
 
@@ -276,8 +277,8 @@ class TelloController:
         print(f"\nBattery level: {battery}%")
 
         # Initialize action space for command conversion
-        self.action_space = DroneActionSpace()
-        self.action_projector = ActionProjector(mode=mode, config_path="config_tello.yaml")
+        self.action_space = TelloDroneActionSpace()
+        self.action_projector = TelloActionProjector(mode=mode, config_path="config_tello.yaml")
 
         print(f"TelloController initialized in {mode} mode. Drone connected and ready.")
 

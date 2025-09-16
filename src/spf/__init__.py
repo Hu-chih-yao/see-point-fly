@@ -8,7 +8,7 @@ __description__ = "See, Point, Fly: A Learning-Free VLM Framework for Universal 
 
 # Import main classes for easy access
 from .clients.vlm_client import VLMClient
-from .spaces.drone_space import DroneActionSpace, ActionPoint
+from .base.drone_space import DroneActionSpace, ActionPoint
 
 __all__ = [
     "VLMClient",

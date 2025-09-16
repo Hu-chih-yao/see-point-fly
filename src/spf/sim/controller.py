@@ -4,8 +4,9 @@ import os
 import threading
 import queue
 from collections import deque
-from ..spaces.drone_space_sim import DroneActionSpaceSim, ActionPoint
-from ..projectors.action_projector_sim import ActionProjectorSim
+from .drone_space import SimDroneActionSpace
+from .action_projector import SimActionProjector
+from ..base.drone_space import ActionPoint
 
 class SimController:
     def __init__(self, adaptive_mode=True, screen_width=1920, screen_height=1080):
@@ -48,8 +49,8 @@ class SimController:
         }
 
         # Initialize action space for command conversion
-        self.action_space = DroneActionSpaceSim()
-        self.action_projector = ActionProjectorSim(
+        self.action_space = SimDroneActionSpace()
+        self.action_projector = SimActionProjector(
             image_width=self.screen_width,
             image_height=self.screen_height,
             adaptive_mode=self.adaptive_mode,
