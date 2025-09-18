@@ -16,6 +16,66 @@ from datetime import datetime
 # We're now inside the spf package, so imports work directly
 from .controller import TelloController
 
+# Global variables for dynamic command handling
+current_command_lock = threading.Lock()
+current_command_storage = {"command": "", "changed": False}
+
+def command_input_handler(stop_event):
+    """
+    Background thread function to handle dynamic command input
+    Continuously listens for new commands from the user
+    """
+    print("\n🎮 DYNAMIC COMMAND INPUT READY!")
+    print("💡 You can enter new commands anytime while Tello is flying")
+    print("ℹ️  Just type a new command and press Enter to change the task")
+    print("⚠️  Use Ctrl+C in the main window to exit\n")
+    
+    while not stop_event.is_set():
+        try:
+            # Get new command from user (this will block until input is received)
+            new_command = input("📝 Enter new command: ").strip()
+            
+            if new_command:  # Only update if command is not empty
+                with current_command_lock:
+                    old_command = current_command_storage["command"]
+                    current_command_storage["command"] = new_command
+                    current_command_storage["changed"] = True
+                
+                print(f"✅ Command updated!")
+                print(f"   Old: '{old_command}'")
+                print(f"   New: '{new_command}'")
+                print("🚀 Tello will use the new command on next processing cycle\n")
+            
+        except EOFError:
+            # Handle Ctrl+D or input stream closure
+            break
+        except KeyboardInterrupt:
+            # Handle Ctrl+C (though this should be handled by main thread)
+            break
+        except Exception as e:
+            print(f"⚠️  Error in command input: {e}")
+    
+    print("🔚 Command input handler stopped")
+
+def get_current_command():
+    """
+    Thread-safe function to get the current command
+    Returns: (command_string, has_changed_flag)
+    """
+    with current_command_lock:
+        command = current_command_storage["command"]
+        changed = current_command_storage["changed"]
+        current_command_storage["changed"] = False  # Reset the changed flag
+        return command, changed
+
+def set_initial_command(command):
+    """
+    Thread-safe function to set the initial command
+    """
+    with current_command_lock:
+        current_command_storage["command"] = command
+        current_command_storage["changed"] = False
+
 def save_frame_to_directory(frame, directory, prefix="frame"):
     """
     Save a frame to the specified directory with a timestamp
@@ -200,7 +260,8 @@ def main(args):
             print(f"[RECORDER] Started continuous frame recording at {fps} with session name: {session_name}")
 
         # Get initial command from user
-        current_command = input("\nEnter high-level command (e.g., 'navigate through the center of the room'): ")
+        initial_command = input("\nEnter initial command (e.g., 'navigate through the center of the room'): ")
+        set_initial_command(initial_command)
 
         print("\nStarting control loop...")
         print("Press Ctrl+C to exit")
@@ -213,6 +274,15 @@ def main(args):
         print("  L: Land")
         print("  E: Emergency stop (stop all movement)")
         print("\nAI control will resume when no override keys are pressed")
+
+        # Start dynamic command input thread
+        stop_input_thread = threading.Event()
+        input_thread = threading.Thread(
+            target=command_input_handler,
+            args=(stop_input_thread,),
+            daemon=True
+        )
+        input_thread.start()
 
         print("\nStarting in 4 seconds... Prepare for takeoff!")
         time.sleep(5)
@@ -238,6 +308,13 @@ def main(args):
 
         while True:
             try:
+                # Get current command (might have changed)
+                current_command, command_changed = get_current_command()
+                
+                # Log command changes
+                if command_changed:
+                    print(f"\n🔄 NEW COMMAND ACTIVE: '{current_command}'\n")
+
                 # Check if manual control is active
                 if tello_controller.is_manual_control_active():
                     # Skip AI processing during manual control
@@ -357,6 +434,11 @@ def main(args):
         import traceback
         traceback.print_exc()
     finally:
+        # Stop command input thread
+        if 'stop_input_thread' in locals():
+            print("🛑 Stopping command input thread...")
+            stop_input_thread.set()
+
         # Close any open OpenCV windows
         cv2.destroyAllWindows()
 
