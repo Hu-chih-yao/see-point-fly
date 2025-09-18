@@ -27,10 +27,10 @@ class TelloActionProjector(ActionProjector):
             mode (str): Operational mode ("adaptive_mode" or "obstacle_mode")
             config_path (str): Path to configuration file
         """
-        super().__init__(image_width, image_height, config_path)
-
-        # Store operational mode
+        # Store operational mode FIRST (needed by parent's _determine_model_name)
         self.operational_mode = mode
+        
+        super().__init__(image_width, image_height, config_path)
 
         # Use Tello-specific action space
         self.action_space = TelloDroneActionSpace(n_samples=8)
@@ -57,7 +57,7 @@ class TelloActionProjector(ActionProjector):
             if self.operational_mode == "obstacle_mode":
                 return "gemini-2.5-pro"
             else:
-                return "gemini-2.5-flash"
+                return "gemini-2.0-flash"
 
     def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 2) -> Tuple[float, float, float]:
         """Project 2D image point back to 3D space with Tello-specific parameters"""

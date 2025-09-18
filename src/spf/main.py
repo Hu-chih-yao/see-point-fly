@@ -19,11 +19,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s sim                    # Run in simulator mode
-  %(prog)s tello                  # Run with real Tello drone
-  %(prog)s sim --debug            # Run simulator with debug output
-  %(prog)s tello --test           # Run Tello in test mode
-  %(prog)s sim --info             # Show monitor information and exit
+  %(prog)s sim                    # Run simulator
+  %(prog)s tello                  # Run real Tello
+  %(prog)s tello --video          # Record MP4 video
+  %(prog)s sim --info             # Show monitor info
         """
     )
 
@@ -79,6 +78,18 @@ Examples:
         '--record-session',
         type=str,
         help='Name for the recording session (Tello only)'
+    )
+    
+    tello_group.add_argument(
+        '--video',
+        action='store_true',
+        help='Record MP4 video (Tello only)'
+    )
+    
+    tello_group.add_argument(
+        '--video-session',
+        type=str,
+        help='Video session name (Tello only)'
     )
 
     args = parser.parse_args()

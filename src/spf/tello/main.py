@@ -259,6 +259,12 @@ def main(args):
             fps = "10fps" if operational_mode == "obstacle_mode" else "3fps"
             print(f"[RECORDER] Started continuous frame recording at {fps} with session name: {session_name}")
 
+        # Start video recording if requested
+        if getattr(args, 'video', False):
+            session_name = getattr(args, 'video_session', None) or "flight"
+            tello_controller.start_video_recording(session_name)
+            print(f"🎥 Video recording started: {session_name}")
+
         # Get initial command from user
         initial_command = input("\nEnter initial command (e.g., 'navigate through the center of the room'): ")
         set_initial_command(initial_command)
@@ -444,6 +450,11 @@ def main(args):
 
         if 'tello_controller' in locals():
             print("\nLanding drone and cleaning up...")
+            
+            # Stop video recording if active
+            if hasattr(tello_controller, 'video_recorder') and tello_controller.is_video_recording():
+                pass  # Video stop message handled by controller
+            
             tello_controller.stop()
 
     return 0
