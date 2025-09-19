@@ -27,9 +27,7 @@ class TelloActionProjector(ActionProjector):
             mode (str): Operational mode ("adaptive_mode" or "obstacle_mode")
             config_path (str): Path to configuration file
         """
-        # Store operational mode BEFORE calling super().__init__()
-        # This is needed because the parent class calls _determine_model_name() 
-        # which requires operational_mode to be set
+        # Store operational mode FIRST (needed by parent's _determine_model_name)
         self.operational_mode = mode
         
         super().__init__(image_width, image_height, config_path)
