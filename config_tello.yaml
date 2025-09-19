@@ -3,7 +3,7 @@
 
 # API Provider Configuration
 # Choose between "gemini" or "openai" (OpenAI compatible API)
-api_provider: "gemini" # or "openai"
+api_provider: "openai" # or "openai"
 
 # Model Configuration
 # Specify the exact model name to use (overrides operational_mode defaults)

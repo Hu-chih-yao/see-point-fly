@@ -27,18 +27,15 @@ class TelloActionProjector(ActionProjector):
             mode (str): Operational mode ("adaptive_mode" or "obstacle_mode")
             config_path (str): Path to configuration file
         """
-        super().__init__(image_width, image_height, config_path)
-
-        # Store operational mode
+        # Store operational mode BEFORE calling super().__init__()
+        # This is needed because the parent class calls _determine_model_name() 
+        # which requires operational_mode to be set
         self.operational_mode = mode
+        
+        super().__init__(image_width, image_height, config_path)
 
         # Use Tello-specific action space
         self.action_space = TelloDroneActionSpace(n_samples=8)
-
-        # Override model name determination for mode-specific models
-        model_name = self._determine_model_name()
-        self.vlm_client.model_name = model_name
-        self.model_name = model_name
 
         print(f"[TelloActionProjector] Initialized in {mode} with {self.api_provider} provider using model: {self.model_name}")
 
@@ -57,7 +54,7 @@ class TelloActionProjector(ActionProjector):
             if self.operational_mode == "obstacle_mode":
                 return "gemini-2.5-pro"
             else:
-                return "gemini-2.5-flash"
+                return "gemini-2.0-flash"
 
     def reverse_project_point(self, point_2d: Tuple[int, int], depth: float = 2) -> Tuple[float, float, float]:
         """Project 2D image point back to 3D space with Tello-specific parameters"""
@@ -99,7 +96,7 @@ class TelloActionProjector(ActionProjector):
             return adjusted_depth, yaw_only
         else:  # vlm_depth > 2
             # Far objects - non-linear scaling for efficiency
-            base = (vlm_depth / 10.0)**2.4 * 7
+            base = (vlm_depth / 10.0)**2.0 * 8
             adjusted_depth = base
             yaw_only = False
             print(f"Tello: VLM depth {vlm_depth}/10 → Adjusted depth {adjusted_depth:.2f} (Normal movement)")
