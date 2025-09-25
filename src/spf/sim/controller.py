@@ -8,6 +8,7 @@ from .drone_space import SimDroneActionSpace
 from .action_projector import SimActionProjector
 from ..base.drone_space import ActionPoint
 
+
 class SimController:
     def __init__(self, adaptive_mode=True, screen_width=1920, screen_height=1080):
         self.keyboard = Controller()
@@ -26,26 +27,26 @@ class SimController:
 
         # Action mapping
         self.action_map = {
-            'increase_throttle': 'w',
-            'decrease_throttle': 's',
-            'yaw_left': 'a',
-            'yaw_right': 'd',
-            'roll_left': Key.left,
-            'roll_right': Key.right,
-            'pitch_forward': Key.up,
-            'pitch_back': Key.down
+            "increase_throttle": "w",
+            "decrease_throttle": "s",
+            "yaw_left": "a",
+            "yaw_right": "d",
+            "roll_left": Key.left,
+            "roll_right": Key.right,
+            "pitch_forward": Key.up,
+            "pitch_back": Key.down,
         }
 
         # Opposite actions for oscillation prevention
         self.opposite_actions = {
-            'yaw_left': 'yaw_right',
-            'yaw_right': 'yaw_left',
-            'roll_left': 'roll_right',
-            'roll_right': 'roll_left',
-            'pitch_forward': 'pitch_back',
-            'pitch_back': 'pitch_forward',
-            'increase_throttle': 'decrease_throttle',
-            'decrease_throttle': 'increase_throttle'
+            "yaw_left": "yaw_right",
+            "yaw_right": "yaw_left",
+            "roll_left": "roll_right",
+            "roll_right": "roll_left",
+            "pitch_forward": "pitch_back",
+            "pitch_back": "pitch_forward",
+            "increase_throttle": "decrease_throttle",
+            "decrease_throttle": "increase_throttle",
         }
 
         # Initialize action space for command conversion
@@ -54,16 +55,12 @@ class SimController:
             image_width=self.screen_width,
             image_height=self.screen_height,
             adaptive_mode=self.adaptive_mode,
-            config_path="config_sim.yaml"
+            config_path="config_sim.yaml",
         )
 
-        print(f"SimController initialized in {'adaptive' if self.adaptive_mode else 'obstacle'} mode.")
-
-        # Add data collection attributes
-        self.data_dir = "drone_training_data"
-        self.current_episode = []
-        self.episode_count = 0
-        os.makedirs(self.data_dir, exist_ok=True)
+        print(
+            f"SimController initialized in {'adaptive' if self.adaptive_mode else 'obstacle'} mode."
+        )
 
     def _keyboard_control_loop(self):
         """Separate thread for keyboard control"""
@@ -145,7 +142,9 @@ class SimController:
             action = actions[0]
             if action is None:
                 return "No valid action"
-            response_text += f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
+            response_text += (
+                f"\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
+            )
             self._execute_spatial_action(action, quiet=True)
 
             return response_text
@@ -163,4 +162,4 @@ class SimController:
                 if not quiet:
                     print(f"Executing: {cmd} ({duration}ms)")
                 self.execute_action((cmd, duration))
-                time.sleep(duration/1000.0)  # Reduced delay
+                time.sleep(duration / 1000.0)  # Reduced delay

@@ -12,11 +12,13 @@ from ..base.drone_space import ActionPoint
 from datetime import datetime
 from djitellopy import Tello
 
+
 class FrameRecorder:
     """
     Records frames from the Tello drone at a specified rate.
     Creates a new folder for each recording session.
     """
+
     def __init__(self, frame_provider, fps=3, base_dir="raw_frames"):
         self.frame_provider = frame_provider
         self.fps = fps
@@ -39,7 +41,9 @@ class FrameRecorder:
         # Create session directory with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         if session_name:
-            self.session_dir = os.path.join(self.base_dir, f"{session_name}_{timestamp}")
+            self.session_dir = os.path.join(
+                self.base_dir, f"{session_name}_{timestamp}"
+            )
         else:
             self.session_dir = os.path.join(self.base_dir, f"session_{timestamp}")
 
@@ -67,7 +71,9 @@ class FrameRecorder:
         if self.recording_thread and self.recording_thread.is_alive():
             self.recording_thread.join(timeout=2.0)
 
-        print(f"Stopped recording. Saved {self.frames_saved} frames to {self.session_dir}")
+        print(
+            f"Stopped recording. Saved {self.frames_saved} frames to {self.session_dir}"
+        )
         return True
 
     def _recording_loop(self):
@@ -84,8 +90,7 @@ class FrameRecorder:
                 frame = self.frame_provider.get_frame()
                 if frame is not None and frame.size > 0:
                     frame_filename = os.path.join(
-                        self.session_dir,
-                        f"frame_{self.frames_saved:06d}.jpg"
+                        self.session_dir, f"frame_{self.frames_saved:06d}.jpg"
                     )
                     # Save frame in BGR format for OpenCV
                     cv2.imwrite(frame_filename, frame)
@@ -105,15 +110,20 @@ class RealtimeFrameProvider:
     Dedicated provider that continuously updates and provides the latest frame from Tello.
     Ensures that any frame access is getting the absolute most recent camera view.
     """
+
     def __init__(self, tello):
         self.tello = tello
         self.latest_frame = None
         self.frame_lock = threading.Lock()
         self.running = True
         self.frame_count = 0
-        self.initialization_delay = 2.0  # Seconds to wait before starting frame grabbing
+        self.initialization_delay = (
+            2.0  # Seconds to wait before starting frame grabbing
+        )
 
-        print(f"Initializing frame provider (waiting {self.initialization_delay}s for camera)...")
+        print(
+            f"Initializing frame provider (waiting {self.initialization_delay}s for camera)..."
+        )
         time.sleep(self.initialization_delay)  # Allow camera time to stabilize
 
         # Start background thread for frame updates
@@ -132,7 +142,9 @@ class RealtimeFrameProvider:
                 # Get frame read object (avoiding frequent recreation)
                 frame_read = self.tello.get_frame_read()
                 if frame_read and frame_read.frame is not None:
-                    frame = frame_read.frame.copy()  # Make a copy to avoid reference issues
+                    frame = (
+                        frame_read.frame.copy()
+                    )  # Make a copy to avoid reference issues
                     if frame is not None and frame.size > 0:
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                         with self.frame_lock:
@@ -146,7 +158,9 @@ class RealtimeFrameProvider:
             except Exception as e:
                 retry_count += 1
                 if retry_count <= max_retries:
-                    print(f"Frame update error (retry {retry_count}/{max_retries}): {e}")
+                    print(
+                        f"Frame update error (retry {retry_count}/{max_retries}): {e}"
+                    )
                     time.sleep(retry_delay)
                 else:
                     print(f"Frame update failed after {max_retries} retries: {e}")
@@ -159,8 +173,15 @@ class RealtimeFrameProvider:
             if self.latest_frame is None:
                 # Return blank frame as fallback
                 blank = np.zeros((720, 960, 3), dtype=np.uint8)
-                cv2.putText(blank, "No frame available", (50, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+                cv2.putText(
+                    blank,
+                    "No frame available",
+                    (50, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (255, 0, 0),
+                    2,
+                )
                 return blank
             return self.latest_frame.copy()
 
@@ -224,52 +245,65 @@ class TelloController:
 
         # Start manual override keyboard listener
         self.key_listener = Listener(
-            on_press=self._on_key_press,
-            on_release=self._on_key_release)
+            on_press=self._on_key_press, on_release=self._on_key_release
+        )
         self.key_listener.daemon = True
         self.key_listener.start()
 
         # Map abstract actions to Tello RC control parameters (left_right, forward_backward, up_down, yaw)
         # Format: (left_right, forward_backward, up_down, yaw)
         self.action_map = {
-            'increase_throttle': (0, 0, self.default_speed, 0),    # Up
-            'decrease_throttle': (0, 0, -self.default_speed, 0),   # Down
-            'yaw_left': (0, 0, 0, -self.default_speed),            # Turn left
-            'yaw_right': (0, 0, 0, self.default_speed),            # Turn right
-            'roll_left': (-self.default_speed, 0, 0, 0),           # Left
-            'roll_right': (self.default_speed, 0, 0, 0),           # Right
-            'pitch_forward': (0, self.default_speed, 0, 0),        # Forward
-            'pitch_back': (0, -self.default_speed, 0, 0),          # Backward
-            'land': (0, 0, 0, 0),                                 # Land (placeholder - actual land command handled separately)
-            'takeoff': (0, 0, 0, 0)                               # Takeoff (placeholder - actual takeoff handled separately)
+            "increase_throttle": (0, 0, self.default_speed, 0),  # Up
+            "decrease_throttle": (0, 0, -self.default_speed, 0),  # Down
+            "yaw_left": (0, 0, 0, -self.default_speed),  # Turn left
+            "yaw_right": (0, 0, 0, self.default_speed),  # Turn right
+            "roll_left": (-self.default_speed, 0, 0, 0),  # Left
+            "roll_right": (self.default_speed, 0, 0, 0),  # Right
+            "pitch_forward": (0, self.default_speed, 0, 0),  # Forward
+            "pitch_back": (0, -self.default_speed, 0, 0),  # Backward
+            "land": (
+                0,
+                0,
+                0,
+                0,
+            ),  # Land (placeholder - actual land command handled separately)
+            "takeoff": (
+                0,
+                0,
+                0,
+                0,
+            ),  # Takeoff (placeholder - actual takeoff handled separately)
         }
 
         # Manual control mapping (key -> (command, duration in ms))
         self.manual_control_map = {
             # Using string representation for special keys
-            'Key.up': ('pitch_forward', self.default_speed),       # Forward with up arrow
-            'Key.down': ('pitch_back', self.default_speed),        # Backward with down arrow
-            'a': ('yaw_left', self.default_speed),                 # Turn left with A
-            'd': ('yaw_right', self.default_speed),                # Turn right with D
-            'Key.left': ('roll_left', self.default_speed),         # Roll left with left arrow
-            'Key.right': ('roll_right', self.default_speed),       # Roll right with right arrow
-            'w': ('increase_throttle', self.default_speed),        # Up with W
-            's': ('decrease_throttle', self.default_speed),        # Down with S
-            'l': ('land', self.default_speed),                      # Land with L
-            't': ('takeoff', self.default_speed),                   # Takeoff with T
-            'e': (None, self.default_speed)                         # Emergency stop with E
+            "Key.up": ("pitch_forward", self.default_speed),  # Forward with up arrow
+            "Key.down": ("pitch_back", self.default_speed),  # Backward with down arrow
+            "a": ("yaw_left", self.default_speed),  # Turn left with A
+            "d": ("yaw_right", self.default_speed),  # Turn right with D
+            "Key.left": ("roll_left", self.default_speed),  # Roll left with left arrow
+            "Key.right": (
+                "roll_right",
+                self.default_speed,
+            ),  # Roll right with right arrow
+            "w": ("increase_throttle", self.default_speed),  # Up with W
+            "s": ("decrease_throttle", self.default_speed),  # Down with S
+            "l": ("land", self.default_speed),  # Land with L
+            "t": ("takeoff", self.default_speed),  # Takeoff with T
+            "e": (None, self.default_speed),  # Emergency stop with E
         }
 
         # Opposite actions for oscillation prevention
         self.opposite_actions = {
-            'yaw_left': 'yaw_right',
-            'yaw_right': 'yaw_left',
-            'roll_left': 'roll_right',
-            'roll_right': 'roll_left',
-            'pitch_forward': 'pitch_back',
-            'pitch_back': 'pitch_forward',
-            'increase_throttle': 'decrease_throttle',
-            'decrease_throttle': 'increase_throttle'
+            "yaw_left": "yaw_right",
+            "yaw_right": "yaw_left",
+            "roll_left": "roll_right",
+            "roll_right": "roll_left",
+            "pitch_forward": "pitch_back",
+            "pitch_back": "pitch_forward",
+            "increase_throttle": "decrease_throttle",
+            "decrease_throttle": "increase_throttle",
         }
 
         # Get battery level
@@ -278,17 +312,11 @@ class TelloController:
 
         # Initialize action space for command conversion
         self.action_space = TelloDroneActionSpace()
-        self.action_projector = TelloActionProjector(mode=mode, config_path="config_tello.yaml")
+        self.action_projector = TelloActionProjector(
+            mode=mode, config_path="config_tello.yaml"
+        )
 
         print(f"TelloController initialized in {mode} mode. Drone connected and ready.")
-
-        # Add data collection attributes
-        self.data_dir = "tello_training_data"
-        self.current_episode = []
-        self.episode_count = 0
-        os.makedirs(self.data_dir, exist_ok=True)
-
-        print("TelloController initialized. Drone connected and ready.")
 
     def start_frame_recording(self, session_name=None):
         """Start recording frames at 10fps"""
@@ -332,7 +360,7 @@ class TelloController:
         action, duration_ms = action_tuple
 
         # Handle special commands that aren't RC controls
-        if action == 'land':
+        if action == "land":
             try:
                 print("Landing drone")
                 self.tello.land()
@@ -341,7 +369,7 @@ class TelloController:
                 print(f"Landing failed: {e}")
                 return
 
-        if action == 'takeoff':
+        if action == "takeoff":
             try:
                 print("Taking off")
                 self.tello.takeoff()
@@ -380,7 +408,6 @@ class TelloController:
                 difference_ms = actual_duration_ms - duration_ms
                 print(f"✓ Done: {actual_duration_ms:.0f}ms (Δ{difference_ms:+.1f}ms)")
 
-
                 # Update drone state (using original action space)
                 new_state = self.action_space.update_state(action, duration_ms)
                 print(f"New state: {new_state}")
@@ -398,7 +425,7 @@ class TelloController:
         try:
             # Convert Key object to string representation for comparison
             key_str = str(key)
-            if hasattr(key, 'char'):
+            if hasattr(key, "char"):
                 key_char = key.char.lower()
             else:
                 key_char = None
@@ -428,10 +455,10 @@ class TelloController:
                 if cmd is None:  # Emergency stop
                     print("EMERGENCY STOP")
                     self.tello.send_rc_control(0, 0, 0, 0)
-                elif cmd == 'land':
+                elif cmd == "land":
                     print("MANUAL OVERRIDE: Landing")
                     self.tello.land()
-                elif cmd == 'takeoff':
+                elif cmd == "takeoff":
                     print("MANUAL OVERRIDE: Taking off")
                     self.tello.takeoff()
                 else:
@@ -450,7 +477,7 @@ class TelloController:
         try:
             # Convert Key object to string representation for comparison
             key_str = str(key)
-            if hasattr(key, 'char'):
+            if hasattr(key, "char"):
                 key_char = key.char.lower()
             else:
                 key_char = None
@@ -468,7 +495,7 @@ class TelloController:
                 cmd, _ = self.manual_control_map[matched_key]
 
                 # For land and takeoff, we don't need to stop any movement
-                if cmd not in ['land', 'takeoff']:
+                if cmd not in ["land", "takeoff"]:
                     # Stop the movement (only if it's not a one-time action)
                     self.tello.send_rc_control(0, 0, 0, 0)
 
@@ -513,7 +540,15 @@ class TelloController:
             print(f"Error capturing Tello frame: {e}")
             # Return a blank image with error message as fallback
             blank = np.zeros((720, 960, 3), dtype=np.uint8)
-            cv2.putText(blank, "Tello camera error", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            cv2.putText(
+                blank,
+                "Tello camera error",
+                (50, 50),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (255, 0, 0),
+                2,
+            )
             return blank
 
     def wait_for_queue_empty(self, timeout=30, debug=False):
@@ -536,20 +571,26 @@ class TelloController:
             print(f"Queue emptied after {time.time() - start_time:.2f} seconds")
         return True
 
-    def process_spatial_command(self, current_frame, instruction: str, mode: str = "single"):
+    def process_spatial_command(
+        self, current_frame, instruction: str, mode: str = "single"
+    ):
         """Process command using spatial understanding system with mode-specific handling"""
         try:
             # Mode-specific processing for obstacle_mode
             if self.operational_mode == "obstacle_mode":
                 # Record start time for API call
                 api_start_time = time.time()
-                print(f"[KEEPALIVE] API call starting at {time.strftime('%H:%M:%S')} - keepalive protection active")
+                print(
+                    f"[KEEPALIVE] API call starting at {time.strftime('%H:%M:%S')} - keepalive protection active"
+                )
 
                 # Start intensive keepalive before API call
                 self.start_intensive_keepalive()
 
                 # Pass controller reference to action projector for keepalive control
-                actions = self.action_projector.get_vlm_points(current_frame, instruction, tello_controller=self)
+                actions = self.action_projector.get_vlm_points(
+                    current_frame, instruction, tello_controller=self
+                )
 
                 # Return to normal keepalive after API call
                 self.stop_intensive_keepalive()
@@ -559,7 +600,9 @@ class TelloController:
                 print(f"[KEEPALIVE] API call completed in {api_duration:.2f} seconds")
             else:
                 # Adaptive mode - standard processing
-                actions = self.action_projector.get_vlm_points(current_frame, instruction)
+                actions = self.action_projector.get_vlm_points(
+                    current_frame, instruction
+                )
 
             if not actions:
                 return "No valid actions identified"
@@ -575,7 +618,9 @@ class TelloController:
                 print("\\n action in process_spatial_command part(obstacle mode):")
                 print("/n", actions)
 
-            response_text += f"\\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
+            response_text += (
+                f"\\n→ Moving: ({action.dx:.2f}, {action.dy:.2f}, {action.dz:.2f})"
+            )
             self._execute_spatial_action(action, quiet=True)
 
             return response_text
@@ -593,7 +638,7 @@ class TelloController:
                 if not quiet:
                     print(f"Executing: {cmd} ({duration}ms)")
                 self.execute_action((cmd, duration))
-                time.sleep(duration/1000.0)  # Reduced delay
+                time.sleep(duration / 1000.0)  # Reduced delay
 
     def takeoff(self):
         """Takeoff the drone"""
@@ -626,7 +671,9 @@ class TelloController:
                     # Send keepalive command
                     self.tello.send_keepalive()
                     if self.intensive_keepalive:
-                        print(f"[KEEPALIVE-INTENSIVE] Signal sent at {time.strftime('%H:%M:%S')}")
+                        print(
+                            f"[KEEPALIVE-INTENSIVE] Signal sent at {time.strftime('%H:%M:%S')}"
+                        )
                     else:
                         print(f"[KEEPALIVE] Signal sent at {time.strftime('%H:%M:%S')}")
 
@@ -652,7 +699,9 @@ class TelloController:
             height = self.tello.get_height()
             flight_time = self.tello.get_flight_time()
 
-            print(f"[TELLO STATUS] Battery: {bat}%, Temp: {temp}°C, Height: {height}cm, Flight time: {flight_time}s")
+            print(
+                f"[TELLO STATUS] Battery: {bat}%, Temp: {temp}°C, Height: {height}cm, Flight time: {flight_time}s"
+            )
 
             if bat < 20:
                 print("[TELLO WARNING] Battery level critical!")
@@ -682,7 +731,7 @@ class TelloController:
         self.running = False
 
         # Stop frame recording if active
-        if hasattr(self, 'frame_recorder'):
+        if hasattr(self, "frame_recorder"):
             self.frame_recorder.stop_recording()
 
         # Stop the drone movement
@@ -704,19 +753,22 @@ class TelloController:
             pass
 
         # Stop frame provider
-        if hasattr(self, 'frame_provider'):
+        if hasattr(self, "frame_provider"):
             self.frame_provider.stop()
 
         # Stop keyboard listener
-        if hasattr(self, 'key_listener') and self.key_listener.is_alive():
+        if hasattr(self, "key_listener") and self.key_listener.is_alive():
             self.key_listener.stop()
 
         # Stop threads
         if self.control_thread.is_alive():
             self.control_thread.join(timeout=1.0)
 
-        if (self.operational_mode == "obstacle_mode" and
-            hasattr(self, 'keepalive_thread') and self.keepalive_thread.is_alive()):
+        if (
+            self.operational_mode == "obstacle_mode"
+            and hasattr(self, "keepalive_thread")
+            and self.keepalive_thread.is_alive()
+        ):
             self.keepalive_thread.join(timeout=1.0)
 
         print(f"TelloController ({self.operational_mode}) stopped and cleaned up")

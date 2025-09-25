@@ -1,0 +1,102 @@
+cff-version: 1.2.0
+title: >-
+  See, Point, Fly: A Learning-Free VLM Framework for
+  Universal Unmanned Aerial Navigation
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - family-names: Hu
+    given-names: Chih Yao
+    affiliation: National Taiwan University
+  - family-names: Lin
+    given-names: Yang-Sen
+    affiliation: National Yang Ming Chiao Tung University
+  - family-names: Lee
+    given-names: Yuna
+    orcid: "https://orcid.org/0000-0001-8065-6250"
+    affiliation: National Yang Ming Chiao Tung University
+  - family-names: Su
+    given-names: Chih-Hai
+    orcid: "https://orcid.org/0009-0002-8500-9161"
+    affiliation: National Yang Ming Chiao Tung University
+  - family-names: Lee
+    given-names: Jie-Ying
+    orcid: "https://orcid.org/0009-0008-0826-4664"
+    affiliation: National Yang Ming Chiao Tung University
+  - family-names: Tsai
+    given-names: Shr-Ruei
+    orcid: "https://orcid.org/0009-0002-2707-0095"
+    affiliation: National Yang Ming Chiao Tung University
+  - family-names: Lin
+    given-names: Chin-Yang
+    affiliation: National Yang Ming Chiao Tung University
+  - family-names: Chen
+    given-names: Kuan-Wen
+    orcid: "https://orcid.org/0000-0002-4159-201X"
+    affiliation: National Yang Ming Chiao Tung University
+  - family-names: Ke
+    given-names: Tsung-Wei
+    affiliation: National Taiwan University
+  - family-names: Liu
+    given-names: Yu-Lun
+    affiliation: National Yang Ming Chiao Tung University
+repository-code: "https://github.com/tommy60718/see-point-fly"
+url: "https://spf-web.pages.dev"
+keywords:
+  - Vision-Language Models
+  - Zero-shot UAV Navigation
+  - 2D-to-3D
+  - Waypoint Prompting
+version: 0.1.0
+date-released: "2025-09-25"
+preferred-citation:
+  type: conference-paper
+  authors:
+    - family-names: Hu
+      given-names: Chih Yao
+      affiliation: National Taiwan University
+    - family-names: Lin
+      given-names: Yang-Sen
+      affiliation: National Yang Ming Chiao Tung University
+    - family-names: Lee
+      given-names: Yuna
+      orcid: "https://orcid.org/0000-0001-8065-6250"
+      affiliation: National Yang Ming Chiao Tung University
+    - family-names: Su
+      given-names: Chih-Hai
+      orcid: "https://orcid.org/0009-0002-8500-9161"
+      affiliation: National Yang Ming Chiao Tung University
+    - family-names: Lee
+      given-names: Jie-Ying
+      orcid: "https://orcid.org/0009-0008-0826-4664"
+      affiliation: National Yang Ming Chiao Tung University
+    - family-names: Tsai
+      given-names: Shr-Ruei
+      orcid: "https://orcid.org/0009-0002-2707-0095"
+      affiliation: National Yang Ming Chiao Tung University
+    - family-names: Lin
+      given-names: Chin-Yang
+      affiliation: National Yang Ming Chiao Tung University
+    - family-names: Chen
+      given-names: Kuan-Wen
+      orcid: "https://orcid.org/0000-0002-4159-201X"
+      affiliation: National Yang Ming Chiao Tung University
+    - family-names: Ke
+      given-names: Tsung-Wei
+      affiliation: National Taiwan University
+    - family-names: Liu
+      given-names: Yu-Lun
+      affiliation: National Yang Ming Chiao Tung University
+  title: >-
+    See, Point, Fly: A Learning-Free VLM Framework for Universal Unmanned Aerial
+    Navigation
+  year: 2025
+  conference:
+    name: 9th Annual Conference on Robot Learning
+    city: Seoul
+    country: KR
+    date-start: "2025-09-27"
+    date-end: "2025-09-30"
+  url: "https://openreview.net/forum?id=AE299O0tph"

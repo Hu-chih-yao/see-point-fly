@@ -1,124 +1,116 @@
-# VLM Tello Integration System
+<div align="center">
+<h1>See, Point, Fly: A Learning-Free VLM Framework for Universal Unmanned Aerial Navigation</h1>
 
-An advanced drone navigation system that uses Vision Language Models (VLM) to control DJI Tello drones with natural language commands. The system supports both physical drone control and simulator environments with intelligent navigation capabilities.
+[**Chih Yao Hu**](https://openreview.net/profile?id=~Chih_Yao_Hu1)<sup>2*</sup>&emsp;
+[**Yang-Sen Lin**](https://openreview.net/profile?id=~Yang-Sen_Lin1)<sup>1*</sup>&emsp;
+[**Yuna Lee**](https://openreview.net/profile?id=~Yuna_Lee1)<sup>1</sup>&emsp;
+[**Chih-Hai Su**](https://openreview.net/profile?id=~Chih-Hai_Su1)<sup>1</sup>&emsp;
+[**Jie-Ying Lee**](https://openreview.net/profile?id=~Jie-Ying_Lee1)<sup>1</sup>&emsp;
+<br>
+[**Shr-Ruei Tsai**](https://openreview.net/profile?id=~Shr-Ruei_Tsai1)<sup>1</sup>&emsp;
+[**Chin-Yang Lin**](https://openreview.net/profile?id=~Chin-Yang_Lin1)<sup>1</sup>&emsp;
+[**Kuan-Wen Chen**](https://openreview.net/profile?id=~Kuan-Wen_Chen2)<sup>1</sup>&emsp;
+[**Tsung-Wei Ke**](https://openreview.net/profile?id=~Tsung-Wei_Ke2)<sup>2</sup>&emsp;
+[**Yu-Lun Liu**](https://openreview.net/profile?id=~Yu-Lun_Liu2)<sup>1</sup>&emsp;
 
-## Overview
+<sup>1</sup>National Yang Ming Chiao Tung University&emsp;&emsp;&emsp;<sup>2</sup>National Taiwan University
+<br>
+*Indicates Equal Contribution
 
-This system provides two main operation environments:
+**CoRL 2025**
 
-### 🚁 **Tello Mode** (Physical Drone Control)
-Control real DJI Tello drones using natural language commands. Choose between two operational modes:
-- **Adaptive Mode**: Precision navigation with advanced depth estimation
-- **Obstacle Mode**: Enhanced safety with obstacle detection and avoidance
+<a href='https://spf-web.pages.dev'><img src='https://img.shields.io/badge/Project_Page-See, Point, Fly-green' alt='Project Page'></a>
+<a href="https://arxiv.org/abs/ARXIV_ID_HERE"><img src='https://img.shields.io/badge/arXiv-0000.00000-b31b1b' alt='arXiv'></a>
+<a href="https://openreview.net/forum?id=AE299O0tph"><img src='https://img.shields.io/badge/OpenReview-CoRL 2025-b31b1b' alt='OpenReview'></a>
+<a href='https://spf-web.pages.dev'><img src='https://visitor-badge.laobi.icu/badge?page_id=tommy60718.see-point-fly' alt='Visitor Counter'></a>
+</div>
 
-### 🎮 **Simulator Mode** (Virtual Environment)
-Test and develop navigation algorithms in a simulated environment using screen capture and keyboard controls. Perfect for development and testing without a physical drone.
+**Zero-shot language-guided UAV control.** See, Point, Fly (SPF) enables UAVs to navigate to any goal based on free-form natural language instructions in any environment, without task-specific training. The system demonstrates robust performance across diverse scenarios including obstacle avoidance, long-horizon planning, and dynamic target following.
 
-## System Architecture
+![Teaser Image](./docs/images/teaser.webp)
 
-```
-VLM Tello Integration System
-├── Tello Mode (Physical Drone)
-│   ├── 🎯 Adaptive Mode - Precision Navigation
-│   └── 🛡️ Obstacle Mode - Safe Navigation
-└── Simulator Mode (Virtual Environment)
-```
-
-
-⚠️ **PROPRIETARY SOFTWARE** ⚠️
-
-This software is proprietary and closed-source. All rights reserved.
-No part of this software may be used, copied, modified, or distributed without express written permission.
-See LICENSE file for details.
-
-## Tello Mode - Operational Modes
-
-When using **Tello Mode** (physical drone), you can choose between two operational modes:
-
-### 🎯 **Adaptive Mode** (Precision Navigation)
-- **Best for**: Indoor navigation, precise positioning tasks
-- **Features**: Advanced depth estimation, adaptive movement speed, precision control
-- **AI Model**: Gemini 2.5 Flash (optimized for speed and accuracy)
-- **Recording**: 3fps frame recording
-- **Safety**: Standard error handling
-
-### 🛡️ **Obstacle Mode** (Safe Navigation)
-- **Best for**: Complex environments, outdoor navigation, obstacle-rich areas
-- **Features**: Obstacle detection, bounding box visualization, intensive keepalive system
-- **AI Model**: Gemini 2.5 Pro (advanced obstacle recognition)
-- **Recording**: 10fps high-detail recording
-- **Safety**: Enhanced timeout protection, automatic safety landing
-
-### 📋 **Technical Details**
-For comprehensive technical documentation including system architecture, data flow analysis, and implementation details, refer to: [`documents/0904_unified_tello_system_architecture.md`](documents/0904_unified_tello_system_architecture.md)
-
-## Key Features
-
-- 🤖 **Natural Language Control**: Command drones using plain English
-- 🧠 **AI-Powered Decision Making**: Google Gemini Vision for intelligent navigation
-- 🎯 **Dual Navigation Modes**: Choose between precision and safety-focused operation
-- 📹 **Real-Time Processing**: Live camera feed analysis and response
-- ⚡ **Multi-Threaded Execution**: Responsive control with background processing
-- 🎮 **Manual Override**: Instant keyboard control for safety
-- 📊 **Comprehensive Logging**: Detailed operation tracking and debugging
-- 🔄 **Automatic Recovery**: Intelligent error handling and safety systems
-
-## Prerequisites
-
-### For Both Modes
+## Requirements
 - uv (Python package manager)
 - Python 3.13+
-- Google Gemini API key or OpenAI compatible API key
-
-### For Tello Mode (Physical Drone)
-- DJI Tello drone
-- Good Wi-Fi connection to the Tello
-- Computer with Wi-Fi capability
-
-### For Simulator Mode (Virtual Environment)
-- Any computer with a screen/monitor
-- Simulator or game environment to control
+- Google Gemini API key or OpenAI-compatible API key
+- DJI Tello drone (for real-world testing in `tello` mode)
+- DRL Simulator (for simulation testing in `sim` mode)
 
 ## Installation
+1. Make sure **uv** is installed. If not, follow the instructions at [uv docs](https://docs.astral.sh/uv/getting-started/installation/).
 
-1. Install dependencies and activate Python virtual environment:
+2. Make sure **Python 3.13** is installed. If not, run the following command to install it via uv:
+```bash
+uv python install 3.13
+```
+
+3. Clone this repository and navigate to the project directory:
+```bash
+git clone https://github.com/tommy60718/see-point-fly.git
+cd see-point-fly
+```
+
+4. Sync the project dependencies and activate the virtual environment:
 ```bash
 uv sync
 source .venv/bin/activate
 ```
 
-2. Configure your environment (see Configuration section below)
+5. Test the installation by running:
+```bash
+spf --help
+```
+
+6. Follow the steps in the next section to set up the environment variables and configuration files.
+After setting up, you can start the system in either `tello` or `sim` mode:
+```bash
+# Start in tello mode
+spf tello
+
+# Start in simulator mode
+spf sim
+```
+
+## Environment Variables Setup
+Copy the `env.example` file to `.env` and fill in the required API keys, you only need to provide the key of provider you want to use (either Gemini or OpenAI compatible):
+```bash
+# Gemini API Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# OpenAI compatible API Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_BASE_URL=https://example.com/api/v1
+```
 
 ## Configuration
 
-### Environment Setup (Required for Both Modes)
+There are two modes (`tello` and `sim`) available in this project. You can switch between them in the command line when starting the system.
 
-Create a `.env` file with your API keys, you only need to setup the provider you plan to use:
-```env
-# Gemini API
-GEMINI_API_KEY=your_gemini_api_key_here
+Each mode has its own configuration file (`config_tello.yaml` and `config_sim.yaml`).
 
-# OpenAI compatible API
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-```
-
-### Tello Mode Configuration
-
-Configure your navigation mode in `config_tello.yaml`:
-
+### A. Tello Mode Configuration
+Update `config_tello.yaml` as needed:
 ```yaml
+# Tello Drone Configuration
+# This file controls the operational mode and behavior of the Tello drone system
+
+# API Provider Configuration
 # Choose between "gemini" or "openai" (OpenAI compatible API)
-api_provider: "gemini"
+api_provider: "gemini" # or "openai"
 
-# Model Selection (optional - leave empty for our experiment defaults)
-model_name: ""  # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+# Model Configuration
+# Specify the exact model name to use (overrides operational_mode defaults)
+# Leave empty to use operational_mode defaults
+model_name: "" # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
 
-# Choose your operational mode
-operational_mode: "adaptive_mode"  # or "obstacle_mode"
+# Operational Mode Configuration
+# adaptive_mode: Original version with depth estimation and adaptive navigation
+# obstacle_mode: Enhanced version with obstacle detection and intensive keepalive
+operational_mode: "adaptive_mode" # Change to "obstacle_mode" for enhanced obstacle detection
+#operational_mode: "obstacle_mode"
 
-# Processing configuration
-command_loop_delay: 2  # seconds between processing cycles
+# Processing Configuration
+command_loop_delay: 2 # Delay in seconds between processing cycles
 ```
 
 #### Tello Mode Selection Guide
@@ -128,245 +120,50 @@ command_loop_delay: 2  # seconds between processing cycles
 | `adaptive_mode` | Indoor precision tasks | Gemini 2.5 Flash | Standard error handling |
 | `obstacle_mode` | Complex environments | Gemini 2.5 Pro | Enhanced safety + obstacle detection |
 
-### Simulator Mode Configuration
+### B. Simulator Mode Configuration
 
-Configure your API provider in `config_sim.yaml`:
+Simulator mode uses the **Gemini 2.5 Flash** model by default, but you can specify a different model if desired.
 
+Update `config_sim.yaml` as needed:
 ```yaml
+# Simulator Navigation Configuration
+
+# API Provider Configuration
 # Choose between "gemini" or "openai" (OpenAI compatible API)
-api_provider: "gemini"
+api_provider: "gemini" # or "openai"
 
-# Model Selection (optional - leave empty for defaults)
-model_name: ""  # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+# Model Configuration
+# Specify the exact model name to use
+# Leave empty to use default model for the provider
+model_name: "" # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+
+# Navigation Mode
+adaptive_mode: false # Enable adaptive depth-based movement (true/false)
+
+# Processing Configuration
+command_loop_delay: 0 # seconds between processing cycles
+
+# Display Configuration
+monitor: 1 # monitor index to capture (1=primary monitor)
 ```
 
-## Navigation Intelligence
+## Additional Repositories
+- [Project Page](https://github.com/yuna0x0/spf-web)
+- [Supplementary Material](https://github.com/yuna0x0/spf-suppl)
 
-### Adaptive Mode Intelligence
-- **Dynamic Depth Estimation**: AI analyzes scene depth on a 1-10 scale for precise distance calculation
-- **Non-Linear Movement Speed**: Slow and careful for close objects, fast and efficient for distant ones
-- **Precision Targeting**: Direct targeting with intelligent depth-based movement scaling
+## Acknowledgement
+This research was funded by the [National Science and Technology Council](https://www.nstc.gov.tw/?l=en), Taiwan, under Grants NSTC 113-2628-E-A49-023- and 111-2628-E-A49-018-MY4. The authors are grateful to [Google](https://about.google), [NVIDIA](https://www.nvidia.com/en-us/), and [MediaTek Inc.](https://www.mediatek.com) for their generous donations. Yu-Lun Liu acknowledges the Yushan Young Fellow Program by the MOE in Taiwan.
 
-### Obstacle Mode Intelligence
-- **Obstacle Detection**: AI identifies and maps obstacles with bounding box coordinates
-- **Safe Path Planning**: Considers obstacles when selecting navigation points
-- **Enhanced Safety**: Intensive keepalive system prevents disconnection during processing
-- **Real-Time Adaptation**: Continuous obstacle monitoring and avoidance
+## License
+Read the [LICENSE](./LICENSE) file for details.
 
-## Usage
-
-### Quick Start
-
-#### For Physical Drone (Tello Mode)
-1. **Connect** to your Tello's Wi-Fi network
-2. **Configure** your preferred mode in `config_tello.yaml`
-3. **Run** the system:
-
-```bash
-spf tello
+## Citation
+```bibtex
+@inproceedings{hu2025spf,
+	title        = {See, Point, Fly: A Learning-Free VLM Framework for Universal Unmanned Aerial Navigation},
+	author       = {Chih Yao Hu and Yang-Sen Lin and Yuna Lee and Chih-Hai Su and Jie-Ying Lee and Shr-Ruei Tsai and Chin-Yang Lin and Kuan-Wen Chen and Tsung-Wei Ke and Yu-Lun Liu},
+	year         = 2025,
+	booktitle    = {9th Annual Conference on Robot Learning},
+	url          = {https://openreview.net/forum?id=AE299O0tph}
+}
 ```
-
-#### For Virtual Environment (Simulator Mode)
-1. **Open** your simulator/game environment
-2. **Run** the simulator:
-
-```bash
-spf sim
-```
-3. **Switch** to your simulator window when prompted
-
-## Tello Mode - Detailed Usage
-
-### 🎯 **Adaptive Mode** (Precision Navigation)
-Best for indoor, controlled environments:
-
-```yaml
-# config_tello.yaml
-operational_mode: "adaptive_mode"
-command_loop_delay: 2
-```
-
-```bash
-# Standard precision flight
-spf tello
-
-# With debug visualization
-spf tello --debug
-```
-
-**Example Commands:**
-- "fly to the chair in front of you"
-- "navigate to the center of the table"
-- "move toward the window on the left"
-
-#### 🛡️ **Obstacle Mode** (Safe Navigation)
-Best for complex environments with obstacles:
-
-```yaml
-# config_tello.yaml
-operational_mode: "obstacle_mode"
-command_loop_delay: 2
-```
-
-```bash
-# Safe obstacle-aware flight
-spf tello
-
-# With enhanced recording
-spf tello --record --record-session "outdoor_flight"
-```
-
-**Example Commands:**
-- "navigate around the tree to reach the building"
-- "fly through the doorway avoiding the walls"
-- "move to the open area while avoiding obstacles"
-
-### Advanced Options (Tello Mode)
-
-```bash
-# Test mode (static image)
-spf tello --test
-
-# Debug mode (live camera feed + detailed logging)
-spf tello --debug
-
-# Skip camera check (if camera issues)
-spf tello --skip-camera-check
-
-# Record flight with custom session name
-spf tello --record --record-session "my_flight"
-```
-
-## Simulator Mode Usage
-
-### 🎮 **Simulator Mode** (Virtual Environment)
-Perfect for development, testing, and learning without a physical drone:
-
-```bash
-# Standard simulator mode
-spf sim
-
-# Debug mode with coordinate system visualization
-spf sim --debug
-
-# Test mode with static image
-spf sim --test
-
-# Specify monitor for screen capture (default is monitor 1)
-spf sim --monitor 2
-```
-
-### Simulator Mode Setup
-1. **Open your simulator/game environment** (any visual environment you want the virtual drone to navigate)
-2. **Configure display**: The system captures your screen to understand the environment
-3. **Run simulator**: `spf sim`
-4. **Switch windows**: After starting, quickly switch to your simulator window
-5. **Give commands**: Enter natural language navigation commands
-
-**Example Simulator Commands:**
-- "navigate through the center of the structure"
-- "fly toward the blue building"
-- "move around the obstacle to reach the target"
-
-## System Modes Comparison
-
-| Aspect | 🚁 Tello Mode | 🎮 Simulator Mode |
-|--------|---------------|-------------------|
-| **Environment** | Physical DJI Tello drone | Virtual screen-based simulation |
-| **Input Source** | Live camera feed (720p) | Screen capture |
-| **Control Method** | Direct RC commands | Keyboard simulation |
-| **AI Models** | Dual modes (Gemini 2.5 Flash /2.5 Pro) | Single mode optimization |
-| **Safety Systems** | Battery monitoring, keepalive | Standard error handling |
-| **Setup Requirements** | Tello drone + Wi-Fi connection | Any computer with screen |
-| **Best Use Cases** | Real flight testing, demonstrations | Algorithm development, testing |
-
-### Tello Mode Advantages
-- ✅ Real-world flight experience
-- ✅ Advanced AI models (dual mode support)
-- ✅ Enhanced safety systems
-- ✅ Obstacle detection capabilities
-- ✅ Physical depth perception
-
-### Simulator Mode Advantages
-- ✅ No hardware requirements
-- ✅ Safe development environment
-- ✅ Rapid iteration and testing
-- ✅ No battery or connection limitations
-
-## Manual Override Controls
-
-### Tello Mode Manual Controls
-When flying a physical drone, you can take manual control at any time by pressing these keys:
-
-- `↑/↓` (Arrow keys): Forward/Backward
-- `A/D`: Turn left/right
-- `←/→` (Arrow keys): Roll left/right
-- `W/S`: Up/Down
-- `T`: Takeoff
-- `L`: Land
-- `E`: Emergency stop (stops all movement)
-
-AI control will automatically resume when you release all keys.
-
-### Simulator Mode Controls
-Simulator mode sends keyboard commands to your simulator/game environment. The specific controls depend on your simulator's keyboard mapping.
-
-## Troubleshooting
-
-### Tello Mode Selection Issues
-
-**Problem**: Not sure which Tello operational mode to use?
-```yaml
-# For indoor precision tasks
-operational_mode: "adaptive_mode"
-
-# For outdoor/complex environments
-operational_mode: "obstacle_mode"
-```
-
-## Tello Mode Troubleshooting
-
-### Connection Issues
-- ✅ Ensure computer is connected to Tello's Wi-Fi network
-- ✅ Tello battery should be >50% charged
-- ✅ Keep Tello within 10 meters Wi-Fi range
-- ✅ Restart Tello if connection fails
-
-### Operational Mode Issues
-
-#### Adaptive Mode Troubleshooting
-- **Slow Processing**: Normal for precision mode (2-5 seconds per command)
-- **Depth Estimation**: Ensure good lighting and clear target objects
-- **Movement Precision**: Works best in structured indoor environments
-
-#### Obstacle Mode Troubleshooting
-- **Longer Processing**: Normal for enhanced mode (3-8 seconds per command)
-- **Timeout Errors**: System includes 120-second timeout protection
-- **Keepalive Messages**: Normal intensive keepalive logging during API calls
-- **High Recording**: 10fps recording uses more storage space
-
-### Performance Issues
-- **API Timeouts**: Switch to `adaptive_mode` for faster processing
-- **Memory Usage**: Obstacle mode uses ~100MB more RAM
-- **Storage Space**: Obstacle mode records 3x more frames
-
-### Safety Features
-- **Automatic Landing**: System lands drone after 3-5 consecutive errors
-- **Manual Override**: Use keyboard controls for immediate safety control
-- **Battery Monitoring**: Obstacle mode includes comprehensive battery warnings
-
-## Simulator Mode Troubleshooting
-
-### Screen Capture Problems
-- **Black Screen**: Ensure the simulator window is visible and not minimized
-- **Wrong Monitor**: Use `--monitor 2` to specify correct display
-- **Resolution Mismatch**: System auto-detects resolution, but may need window adjustment
-
-### Virtual Navigation Issues
-- **Poor Detection**: Ensure good contrast and clear visual elements in simulator
-- **Slow Response**: Normal processing time is 3-8 seconds per command
-- **Keyboard Not Working**: Check that simulator window has focus after giving commands
-
-### Setup Issues
-- **Monitor Info**: Use `spf sim --info` to see available monitors
-- **Debug Mode**: Use `--debug` to visualize coordinate system and verify setup
