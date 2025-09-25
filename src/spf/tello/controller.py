@@ -105,6 +105,138 @@ class FrameRecorder:
             time.sleep(sleep_time)
 
 
+class VideoRecorder:
+    """
+    Records video from the Tello drone as MP4 files.
+    Provides smooth video recording with configurable quality settings.
+    """
+    def __init__(self, frame_provider, fps=30, base_dir="tello_videos"):
+        self.frame_provider = frame_provider
+        self.fps = fps
+        self.base_dir = base_dir
+        self.running = False
+        self.recording_thread = None
+        self.video_writer = None
+        self.session_dir = None
+        self.video_path = None
+        self.frames_recorded = 0
+        
+        # Video settings
+        self.frame_size = (960, 720)  # Tello camera resolution
+        # Try different codecs for compatibility
+        self.codecs_to_try = [
+            cv2.VideoWriter_fourcc(*'H264'),
+            cv2.VideoWriter_fourcc(*'MJPG'),
+            cv2.VideoWriter_fourcc(*'XVID'),
+            cv2.VideoWriter_fourcc(*'mp4v')
+        ]
+        self.fourcc = self.codecs_to_try[0]  # Start with H264
+        
+        # Ensure base directory exists
+        os.makedirs(base_dir, exist_ok=True)
+
+    def start_recording(self, session_name=None):
+        """Start recording video in MP4 format"""
+        if self.running:
+            print("🎥 Video recording already in progress")
+            return False
+
+        # Create session directory with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        if session_name:
+            session_folder = f"{session_name}_{timestamp}"
+        else:
+            session_folder = f"flight_{timestamp}"
+        
+        self.session_dir = os.path.join(self.base_dir, session_folder)
+        os.makedirs(self.session_dir, exist_ok=True)
+        
+        # Create video file path
+        self.video_path = os.path.join(self.session_dir, f"tello_video_{timestamp}.mp4")
+        
+        # Try different codecs until one works
+        self.video_writer = None
+        for i, codec in enumerate(self.codecs_to_try):
+            self.video_writer = cv2.VideoWriter(self.video_path, codec, self.fps, self.frame_size)
+            if self.video_writer.isOpened():
+                self.fourcc = codec
+                codec_name = ['H264', 'MJPG', 'XVID', 'MP4V'][i]
+                print(f"🎥 Using {codec_name} codec")
+                break
+            else:
+                self.video_writer.release()
+        
+        if not self.video_writer or not self.video_writer.isOpened():
+            print("❌ Error: Could not initialize video writer with any codec")
+            return False
+
+        # Reset counter and start recording thread
+        self.frames_recorded = 0
+        self.running = True
+        self.recording_thread = threading.Thread(target=self._video_recording_loop)
+        self.recording_thread.daemon = True
+        self.recording_thread.start()
+
+        return True
+
+    def stop_recording(self):
+        """Stop video recording and finalize MP4 file"""
+        if not self.running:
+            return False
+
+        self.running = False
+
+        # Wait for recording thread to finish
+        if self.recording_thread and self.recording_thread.is_alive():
+            self.recording_thread.join(timeout=2.0)
+
+        # Release video writer
+        if self.video_writer:
+            self.video_writer.release()
+            self.video_writer = None
+
+        duration = self.frames_recorded / self.fps if self.fps > 0 else 0
+        print(f"🎬 Video saved ({duration:.1f}s): {self.video_path}")
+        return True
+
+    def _video_recording_loop(self):
+        """Main video recording loop that runs in a separate thread"""
+        target_interval = 1.0 / self.fps
+        last_frame_time = time.time()
+
+        while self.running:
+            current_time = time.time()
+            elapsed = current_time - last_frame_time
+
+            # Check if it's time to capture a frame
+            if elapsed >= target_interval:
+                # Get frame from Tello
+                frame = self.frame_provider.get_frame()
+                
+                if frame is not None and frame.size > 0:
+                    # Keep original RGB format - no color conversion
+                    video_frame = frame.copy()
+                    
+                    # Ensure frame is the correct size
+                    if video_frame.shape[:2][::-1] != self.frame_size:
+                        video_frame = cv2.resize(video_frame, self.frame_size)
+                    
+                    # Write frame to video (RGB format)
+                    if self.video_writer and self.video_writer.isOpened():
+                        self.video_writer.write(video_frame)
+                        self.frames_recorded += 1
+
+                # Update timing
+                last_frame_time = current_time
+
+            # Short sleep to prevent excessive CPU usage
+            time.sleep(0.005)  # 5ms sleep
+
+    def is_recording(self):
+        """Check if video recording is active"""
+        return self.running
+
+
 class RealtimeFrameProvider:
     """
     Dedicated provider that continuously updates and provides the latest frame from Tello.
@@ -212,6 +344,9 @@ class TelloController:
         # Initialize frame recorder with mode-specific FPS
         fps = 10 if mode == "obstacle_mode" else 3
         self.frame_recorder = FrameRecorder(self.frame_provider, fps=fps)
+        
+        # Initialize video recorder (30fps for smooth video)
+        self.video_recorder = VideoRecorder(self.frame_provider, fps=30, base_dir="tello_videos")
 
         # Initialize control parameters
         self.action_queue = queue.Queue()
@@ -325,6 +460,18 @@ class TelloController:
     def stop_frame_recording(self):
         """Stop recording frames"""
         return self.frame_recorder.stop_recording()
+
+    def start_video_recording(self, session_name=None):
+        """Start MP4 video recording at 30fps"""
+        return self.video_recorder.start_recording(session_name)
+
+    def stop_video_recording(self):
+        """Stop MP4 video recording"""
+        return self.video_recorder.stop_recording()
+
+    def is_video_recording(self):
+        """Check if video recording is active"""
+        return self.video_recorder.is_recording()
 
     def _tello_control_loop(self):
         """Separate thread for Tello control"""
@@ -733,6 +880,10 @@ class TelloController:
         # Stop frame recording if active
         if hasattr(self, "frame_recorder"):
             self.frame_recorder.stop_recording()
+            
+        # Stop video recording if active
+        if hasattr(self, 'video_recorder') and self.video_recorder.is_recording():
+            self.video_recorder.stop_recording()
 
         # Stop the drone movement
         try:
