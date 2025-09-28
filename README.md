@@ -2,7 +2,7 @@
 <h1>See, Point, Fly: A Learning-Free VLM Framework for Universal Unmanned Aerial Navigation</h1>
 
 [**Chih Yao Hu**](https://hu-chih-yao.vercel.app)<sup>2*</sup>&emsp;
-[**Yang-Sen Lin**](https://openreview.net/profile?id=~Yang-Sen_Lin1)<sup>1*</sup>&emsp;
+[**Yang-Sen Lin**](https://www.linkedin.com/in/yang-sen-lin/)<sup>1*</sup>&emsp;
 [**Yuna Lee**](https://yuna0x0.com)<sup>1</sup>&emsp;
 [**Chih-Hai Su**](https://su-terry.github.io)<sup>1</sup>&emsp;
 [**Jie-Ying Lee**](https://jayinnn.dev)<sup>1</sup>&emsp;
