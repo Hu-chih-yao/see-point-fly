@@ -46,7 +46,7 @@ uv python install 3.13
 
 3. Clone this repository and navigate to the project directory:
 ```bash
-git clone https://github.com/tommy60718/see-point-fly.git
+git clone https://github.com/Hu-chih-yao/see-point-fly.git
 cd see-point-fly
 ```
 
