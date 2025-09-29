@@ -100,3 +100,7 @@ preferred-citation:
     date-start: "2025-09-27"
     date-end: "2025-09-30"
   url: "https://openreview.net/forum?id=AE299O0tph"
+  identifiers:
+    - type: other
+      value: "arXiv:2509.22653"
+      description: The ArXiv preprint of the paper.
