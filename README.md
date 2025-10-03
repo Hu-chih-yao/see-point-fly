@@ -22,7 +22,7 @@
 <a href='https://spf-web.pages.dev'><img src='https://img.shields.io/badge/Project_Page-See, Point, Fly-green' alt='Project Page'></a>
 <a href="https://arxiv.org/abs/2509.22653"><img src='https://img.shields.io/badge/arXiv-2509.22653-b31b1b' alt='arXiv'></a>
 <a href="https://openreview.net/forum?id=AE299O0tph"><img src='https://img.shields.io/badge/OpenReview-CoRL 2025-b31b1b' alt='OpenReview'></a>
-<a href='https://spf-web.pages.dev'><img src='https://visitor-badge.laobi.icu/badge?page_id=tommy60718.see-point-fly' alt='Visitor Counter'></a>
+<a href='https://spf-web.pages.dev'><img src='https://visitor-badge.laobi.icu/badge?page_id=Hu-chih-yao.see-point-fly' alt='Visitor Counter'></a>
 </div>
 
 **Zero-shot language-guided UAV control.** See, Point, Fly (SPF) enables UAVs to navigate to any goal based on free-form natural language instructions in any environment, without task-specific training. The system demonstrates robust performance across diverse scenarios including obstacle avoidance, long-horizon planning, and dynamic target following.
