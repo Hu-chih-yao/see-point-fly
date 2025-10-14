@@ -93,13 +93,18 @@ preferred-citation:
     See, Point, Fly: A Learning-Free VLM Framework for Universal Unmanned Aerial
     Navigation
   year: 2025
+  collection-title: Proceedings of The 9th Conference on Robot Learning, PMLR
+  collection-type: proceedings
+  volume: 305
+  start: 4697
+  end: 4708
   conference:
     name: 9th Annual Conference on Robot Learning
     city: Seoul
     country: KR
     date-start: "2025-09-27"
     date-end: "2025-09-30"
-  url: "https://openreview.net/forum?id=AE299O0tph"
+  url: "https://proceedings.mlr.press/v305/hu25e.html"
   identifiers:
     - type: other
       value: "arXiv:2509.22653"

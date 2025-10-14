@@ -159,11 +159,19 @@ Read the [LICENSE](./LICENSE) file for details.
 
 ## Citation
 ```bibtex
-@inproceedings{hu2025spf,
+@inproceedings{pmlr-v305-hu25e,
 	title        = {See, Point, Fly: A Learning-Free VLM Framework for Universal Unmanned Aerial Navigation},
-	author       = {Chih Yao Hu and Yang-Sen Lin and Yuna Lee and Chih-Hai Su and Jie-Ying Lee and Shr-Ruei Tsai and Chin-Yang Lin and Kuan-Wen Chen and Tsung-Wei Ke and Yu-Lun Liu},
+	author       = {Hu, Chih Yao and Lin, Yang-Sen and Lee, Yuna and Su, Chih-Hai and Lee, Jie-Ying and Tsai, Shr-Ruei and Lin, Chin-Yang and Chen, Kuan-Wen and Ke, Tsung-Wei and Liu, Yu-Lun},
 	year         = 2025,
-	booktitle    = {9th Annual Conference on Robot Learning},
-	url          = {https://openreview.net/forum?id=AE299O0tph}
+	month        = {27--30 Sep},
+	booktitle    = {Proceedings of The 9th Conference on Robot Learning},
+	publisher    = {PMLR},
+	series       = {Proceedings of Machine Learning Research},
+	volume       = 305,
+	pages        = {4697--4708},
+	url          = {https://proceedings.mlr.press/v305/hu25e.html},
+	editor       = {Lim, Joseph and Song, Shuran and Park, Hae-Won},
+	pdf          = {https://raw.githubusercontent.com/mlresearch/v305/main/assets/hu25e/hu25e.pdf},
+	abstract     = {We present See, Point, Fly (SPF), a training-free aerial vision-and-language navigation (AVLN) framework built atop vision-language models (VLMs). SPF is capable of navigating to any goal based on any type of free-form instructions in any kind of environment. In contrast to existing VLM-based approaches that treat action prediction as a text generation task, our key insight is to consider action prediction for AVLN as a 2D spatial grounding task. SPF harness VLMs to decompose vague language instructions into iterative annotation of 2D waypoints on the input image. Along with the predicted traveling distance, SPF transforms predicted 2D waypoints into 3D displacement vectors as action commands for UAVs. Moreover, SPF also adaptively adjusts the traveling distance to facilitate more efficient navigation. Notably, SPF performs navigation in a closed-loop control manner, enabling UAVs to follow dynamic targets in dynamic environments. SPF sets a new state of the art in DRL simulation benchmark, out performing the previous best method by an absolute margin of 63%. In extensive real-world evaluations, SPF outperforms strong baselines by a large margin. We also conduct comprehensive ablation studies to highlight the effectiveness of our design choice. Lastly, SPF shows remarkable generalization to different VLMs.}
 }
 ```
