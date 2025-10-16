@@ -1,0 +1,51 @@
+# AirSim Navigation Configuration
+
+# API Provider Configuration
+# Choose between "gemini" or "openai" (OpenAI compatible API)
+api_provider: "gemini" # or "gemini"
+
+# Model Configuration
+# Specify the exact model name to use
+# Leave empty to use default model for the provider
+model_name: "" # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+
+# Navigation Mode
+adaptive_mode: false # Enable adaptive depth-based movement (true/false)
+
+# Processing Configuration
+command_loop_delay: 0 # seconds between processing cycles
+
+# Movement Configuration
+base_velocity: 2.0 # base velocity in m/s for drone movement (default: 2.0)
+base_yaw_rate: 30.0 # base yaw rate in degrees/s for rotation (default: 30.0)
+min_command_duration: 2.0 # minimum duration for movement commands in seconds (default: 2.0)
+
+# AirSim Configuration
+camera_name: "0" # Camera name/ID in AirSim
+
+# Wind Configuration (NED frame: North, East, Down in m/s)
+wind_x: 0.0 # Wind in North direction (default: 0.0)
+wind_y: 0.0 # Wind in East direction (default: 0.0)
+wind_z: 0.0 # Wind in Down direction (default: 0.0)
+
+# Mode Descriptions:
+#
+# adaptive_mode: true
+#   - Uses depth estimation for variable movement speeds
+#   - Slow, precise movements for close objects
+#   - Fast, efficient movements for distant objects
+#   - Enhanced prompt asks VLM for depth information
+#
+# adaptive_mode: false
+#   - Uses obstacle detection mode
+#   - Fixed movement speeds for all distances
+#   - Focuses on obstacle avoidance
+#   - Enhanced prompt asks VLM for obstacle information
+
+# API Provider Options:
+#
+# gemini:
+#   - Requires: GEMINI_API_KEY
+#
+# openai:
+#   - Requires: OPENAI_API_KEY, OPENAI_BASE_URL (defaults to OpenRouter)

@@ -1,0 +1,27 @@
+{
+    "SettingsVersion": 1.2,
+    "SimMode": "Multirotor",
+    "Vehicles": {
+        "SimpleFlight": {
+            "VehicleType": "SimpleFlight",
+            "AutoCreate": true,
+            "Cameras": {
+                "0": {
+                    "CaptureSettings": [
+                        {
+                            "ImageType": 0,
+                            "Width": 1920,
+                            "Height": 1080
+                        }
+                    ],
+                    "X": 0.50,
+                    "Y": 0.0,
+                    "Z": 0.10,
+                    "Pitch": 0.0,
+                    "Roll": 0.0,
+                    "Yaw": 0.0
+                }
+            }
+        }
+    }
+}

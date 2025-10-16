@@ -70,6 +70,12 @@ wheels = [
 ]
 
 [[package]]
+name = "backports-ssl-match-hostname"
+version = "3.7.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/2b/8265224812912bc5b7a607c44bf7b027554e1b9775e9ee0de8032e3de4b2/backports.ssl_match_hostname-3.7.0.1.tar.gz", hash = "sha256:bb82e60f9fbf4c080eabd957c39f0641f0fc247d9a16e31e26d594d8f42b9fd2", size = 5722, upload-time = "2019-01-12T22:25:58.41Z" }
+
+[[package]]
 name = "cachetools"
 version = "5.5.2"
 source = { registry = "https://pypi.org/simple" }
@@ -919,6 +925,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "airsim" },
+    { name = "backports-ssl-match-hostname" },
     { name = "djitellopy" },
     { name = "google-genai" },
     { name = "matplotlib" },
@@ -935,6 +942,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "airsim", specifier = ">=1.8.1" },
+    { name = "backports-ssl-match-hostname", specifier = ">=3.7.0.1" },
     { name = "djitellopy", specifier = ">=2.5.0" },
     { name = "google-genai", specifier = ">=1.35.0" },
     { name = "matplotlib", specifier = ">=3.10.6" },

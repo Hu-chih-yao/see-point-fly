@@ -12,97 +12,94 @@ import argparse
 
 # We're now inside the spf package, so imports work directly
 
+
 def main():
     """Main entry point with mode selection"""
     parser = argparse.ArgumentParser(
-        description='SPF (See, Point, Fly) - VLM Framework for Drone Navigation',
+        description="SPF (See, Point, Fly) - VLM Framework for Drone Navigation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   %(prog)s sim                    # Run simulator
+  %(prog)s airsim                 # Run AirSim
   %(prog)s tello                  # Run real Tello
   %(prog)s tello --video          # Record MP4 video
   %(prog)s sim --info             # Show monitor info
-        """
+        """,
     )
 
     parser.add_argument(
-        'mode',
-        choices=['sim', 'tello'],
-        help='Operation mode: "sim" for simulator, "tello" for real drone'
+        "mode",
+        choices=["sim", "airsim", "tello"],
+        help='Operation mode: "sim" for DRL simulator, "airsim" for AirSim, "tello" for real drone',
     )
 
     # Common arguments
     parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug mode with additional logging'
+        "--debug", action="store_true", help="Enable debug mode with additional logging"
     )
 
     parser.add_argument(
-        '--test',
-        action='store_true',
-        help='Run in test mode with static images'
+        "--test", action="store_true", help="Run in test mode with static images"
     )
 
     # Simulator-specific arguments
-    sim_group = parser.add_argument_group('simulator options')
+    sim_group = parser.add_argument_group("simulator options")
     sim_group.add_argument(
-        '--monitor',
+        "--monitor",
         type=int,
         default=1,
-        help='Monitor index for simulator (1=primary monitor)'
+        help="Monitor index for simulator (1=primary monitor)",
     )
 
     sim_group.add_argument(
-        '--info',
-        action='store_true',
-        help='Display monitor information and exit (simulator only)'
+        "--info",
+        action="store_true",
+        help="Display monitor information and exit (simulator only)",
     )
 
     # Tello-specific arguments
-    tello_group = parser.add_argument_group('tello options')
+    tello_group = parser.add_argument_group("tello options")
     tello_group.add_argument(
-        '--skip-camera-check',
-        action='store_true',
-        help='Skip camera initialization check (Tello only)'
+        "--skip-camera-check",
+        action="store_true",
+        help="Skip camera initialization check (Tello only)",
     )
 
     tello_group.add_argument(
-        '--record',
-        action='store_true',
-        help='Record frames continuously (Tello only)'
+        "--record", action="store_true", help="Record frames continuously (Tello only)"
     )
 
     tello_group.add_argument(
-        '--record-session',
-        type=str,
-        help='Name for the recording session (Tello only)'
+        "--record-session", type=str, help="Name for the recording session (Tello only)"
     )
-    
+
     tello_group.add_argument(
-        '--video',
-        action='store_true',
-        help='Record MP4 video (Tello only)'
+        "--video", action="store_true", help="Record MP4 video (Tello only)"
     )
-    
+
     tello_group.add_argument(
-        '--video-session',
-        type=str,
-        help='Video session name (Tello only)'
+        "--video-session", type=str, help="Video session name (Tello only)"
     )
 
     args = parser.parse_args()
 
     # Import and run the appropriate mode
-    if args.mode == 'sim':
+    if args.mode == "sim":
         from .sim.main import main as sim_main
+
         return sim_main(args)
-    elif args.mode == 'tello':
+    elif args.mode == "airsim":
+        from .airsim.main import main as airsim_main
+
+        return airsim_main(args)
+    elif args.mode == "tello":
         from .tello.main import main as tello_main
+
         return tello_main(args)
     else:
         parser.error(f"Unknown mode: {args.mode}")
+
 
 if __name__ == "__main__":
     try:

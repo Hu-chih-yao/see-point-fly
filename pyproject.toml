@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "airsim>=1.8.1",
+    "backports-ssl-match-hostname>=3.7.0.1",
     "djitellopy>=2.5.0",
     "google-genai>=1.35.0",
     "matplotlib>=3.10.6",

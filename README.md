@@ -34,7 +34,8 @@
 - Python 3.13+
 - Google Gemini API key or OpenAI-compatible API key
 - DJI Tello drone (for real-world testing in `tello` mode)
-- DRL Simulator (for simulation testing in `sim` mode)
+- [DRL Simulator](https://www.drl.io/drl-sim) (for simulation testing in `sim` mode)
+- [Microsoft AirSim](https://github.com/microsoft/AirSim) simulator (for simulation testing in `airsim` mode)
 
 ## Installation
 1. Make sure **uv** is installed. If not, follow the instructions at [uv docs](https://docs.astral.sh/uv/getting-started/installation/).
@@ -62,13 +63,16 @@ spf --help
 ```
 
 6. Follow the steps in the next section to set up the environment variables and configuration files.
-After setting up, you can start the system in either `tello` or `sim` mode:
+After setting up, you can start the system in `tello`, `sim`, or `airsim` mode:
 ```bash
 # Start in tello mode
 spf tello
 
 # Start in simulator mode
 spf sim
+
+# Start in AirSim mode
+spf airsim
 ```
 
 ## Environment Variables Setup
@@ -84,9 +88,9 @@ OPENAI_BASE_URL=https://example.com/api/v1
 
 ## Configuration
 
-There are two modes (`tello` and `sim`) available in this project. You can switch between them in the command line when starting the system.
+There are three modes (`tello`, `sim`, and `airsim`) available in this project. You can switch between them in the command line when starting the system.
 
-Each mode has its own configuration file (`config_tello.yaml` and `config_sim.yaml`).
+Each mode has its own configuration file (`config_tello.yaml`, `config_sim.yaml`, and `config_airsim.yaml`).
 
 ### A. Tello Mode Configuration
 Update `config_tello.yaml` as needed:
@@ -145,6 +149,58 @@ command_loop_delay: 0 # seconds between processing cycles
 
 # Display Configuration
 monitor: 1 # monitor index to capture (1=primary monitor)
+```
+
+### C. AirSim Mode Configuration
+
+AirSim mode requires the [Microsoft AirSim](https://github.com/microsoft/AirSim) simulator to be installed and running.
+
+#### Setting up AirSim
+
+1. **Install AirSim**: Follow the [AirSim installation guide](https://microsoft.github.io/AirSim/#how-to-get-it/) for your platform.
+
+2. **Configure Camera Settings**: AirSim's default camera resolution (256x144) is too low for effective navigation. You need to configure higher resolution:
+   - Copy the example settings file from `src/spf/airsim/settings.json.example` to the directory where the AirSim executable is launched, and rename it to `settings.json`.
+   - The example provides 1920x1080 resolution, which is recommended for best results
+   - Restart AirSim after updating settings
+
+Refer to [AirSim Settings](https://microsoft.github.io/AirSim/settings/#where-are-settings-stored) for details.
+
+3. **Launch AirSim**: Start AirSim with your preferred environment before running SPF.
+
+#### Configuration File
+
+Update `config_airsim.yaml` as needed:
+```yaml
+# AirSim Navigation Configuration
+
+# API Provider Configuration
+# Choose between "gemini" or "openai" (OpenAI compatible API)
+api_provider: "gemini" # or "openai"
+
+# Model Configuration
+# Specify the exact model name to use
+# Leave empty to use default model for the provider
+model_name: "" # e.g., "gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-4.1"
+
+# Navigation Mode
+adaptive_mode: false # Enable adaptive depth-based movement (true/false)
+
+# Processing Configuration
+command_loop_delay: 0 # seconds between processing cycles
+
+# Movement Configuration
+base_velocity: 2.0 # base velocity in m/s for drone movement
+base_yaw_rate: 30.0 # base yaw rate in degrees/s for rotation
+min_command_duration: 2.0 # minimum duration for movement commands in seconds
+
+# AirSim Configuration
+camera_name: "0" # Camera name/ID in AirSim
+
+# Wind Configuration (NED frame: North, East, Down in m/s)
+wind_x: 0.0 # Wind in North direction
+wind_y: 0.0 # Wind in East direction
+wind_z: 0.0 # Wind in Down direction
 ```
 
 ## Additional Repositories
