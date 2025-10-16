@@ -5,6 +5,7 @@ description = "See, Point, Fly: A Learning-Free VLM Framework for Universal Unma
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "airsim>=1.8.1",
     "djitellopy>=2.5.0",
     "google-genai>=1.35.0",
     "matplotlib>=3.10.6",
@@ -20,6 +21,9 @@ dependencies = [
 
 [tool.uv]
 package = true
+
+[tool.uv.extra-build-dependencies]
+airsim = ["numpy", "msgpack-rpc-python", "backports.ssl_match_hostname"]
 
 [project.scripts]
 spf = "spf.main:main"
