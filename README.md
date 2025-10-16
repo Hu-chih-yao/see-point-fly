@@ -157,7 +157,7 @@ AirSim mode requires the [Microsoft AirSim](https://github.com/microsoft/AirSim)
 
 #### Setting up AirSim
 
-1. **Install AirSim**: Follow the [AirSim installation guide](https://microsoft.github.io/AirSim/#how-to-get-it/) for your platform.
+1. **Install AirSim**: Follow the [AirSim installation guide](https://github.com/microsoft/AirSim?tab=readme-ov-file#how-to-get-it) for your platform.
 
 2. **Configure Camera Settings**: AirSim's default camera resolution (256x144) is too low for effective navigation. You need to configure higher resolution:
    - Copy the example settings file from `src/spf/airsim/settings.json.example` to the directory where the AirSim executable is launched, and rename it to `settings.json`.
