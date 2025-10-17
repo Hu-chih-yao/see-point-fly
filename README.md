@@ -29,6 +29,16 @@
 
 ![Teaser Image](./docs/images/teaser.webp)
 
+## 🔥 News
+- **[Oct 17, 2025]** See, Point, Fly now supports open-source [Microsoft AirSim](https://github.com/microsoft/AirSim) simulator! Check out the [AirSim Mode Configuration](#c-airsim-mode-configuration) section for details.
+- **[Oct 07, 2025]** PMLR has published the proceedings of CoRL 2025, with our paper available [here](https://proceedings.mlr.press/v305/hu25e.html).
+- **[Sep 29, 2025]** Our paper is submitted to 🤗 Hugging Face's daily papers! Check it out and upvote [here](https://huggingface.co/papers/2509.22653)!
+- **[Sep 29, 2025]** The preprint of our paper is now available on [arXiv](https://arxiv.org/abs/2509.22653).
+- **[Sep 27, 2025]** The codebase is now public! Check out the [Installation](#installation) section to get started.
+- **[Sep 17, 2025]** Our paper is now visible to everyone on [OpenReview](https://openreview.net/forum?id=AE299O0tph).
+- **[Aug 29, 2025]** Our project page is now live! Check it out [here](https://spf-web.pages.dev).
+- **[Aug 01, 2025]** Our paper has been accepted by [CoRL 2025](https://www.corl.org)! We will present our work at the conference in September, 2025.
+
 ## Requirements
 - uv (Python package manager)
 - Python 3.13+
