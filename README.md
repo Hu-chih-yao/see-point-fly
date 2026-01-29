@@ -44,7 +44,7 @@
 - Python 3.13+
 - Google Gemini API key or OpenAI-compatible API key
 - DJI Tello drone (for real-world testing in `tello` mode)
-- [DRL Simulator](https://www.drl.io/drl-sim) (for simulation testing in `sim` mode)
+- [DRL Simulator](https://store.steampowered.com/app/641780/The_Drone_Racing_League_Simulator/) (for simulation testing in `sim` mode)
 - [Microsoft AirSim](https://github.com/microsoft/AirSim) simulator (for simulation testing in `airsim` mode)
 
 ## Installation
